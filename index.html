@@ -22,8 +22,8 @@
         <div>
           <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Usuario</label>
           <select id="userSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 font-semibold focus:outline-none focus:border-emerald-500">
-            <option value="andy">Andy (Tú)</option>
-            <option value="mujer">Mi Mujer</option>
+            <option value="andres">Andres</option>
+            <option value="andrea">Andrea</option>
           </select>
         </div>
 
@@ -61,7 +61,10 @@
           <button id="planPersonalBtn" onclick="switchPlan('personal')" class="px-3 py-1.5 text-xs font-bold rounded-lg transition">🔒 Mi Plan Privado</button>
         </div>
 
-        <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-xs font-semibold">Salir 🚪</button>
+        <div class="flex items-center space-x-2">
+          <button onclick="openSyncModal()" class="text-slate-400 hover:text-emerald-400 text-xs p-1" title="Ajustes de Sincronización Google Drive">⚙️ Sync</button>
+          <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-xs font-semibold">Salir 🚪</button>
+        </div>
       </div>
     </header>
 
@@ -74,7 +77,7 @@
         <p id="rtaMessage" class="text-xs font-medium"></p>
       </div>
 
-      <!-- NAVEGACIÓN -->
+      <!-- NAVEGACIÓN DE PESTAÑAS -->
       <div class="flex border-b border-slate-700 mb-6 space-x-4">
         <button onclick="showTab('dashboard')" id="tabBtn-dashboard" class="tab-btn font-bold text-sm pb-2 border-b-2 border-emerald-500 text-emerald-400">📊 Sobres y Cuentas</button>
         <button onclick="showTab('transactions')" id="tabBtn-transactions" class="tab-btn font-bold text-sm pb-2 text-slate-400 hover:text-slate-200">📝 Transacciones</button>
@@ -280,27 +283,44 @@
     </div>
   </div>
 
+  <!-- MODAL: AJUSTES SINCRONIZACIÓN GOOGLE DRIVE -->
+  <div id="syncModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
+      <h3 class="text-base font-bold text-emerald-400">⚙️ Sincronización Google Drive</h3>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">URL Web App Apps Script</label>
+        <input type="url" id="syncUrlInput" placeholder="[suspicious link removed]" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+      </div>
+      <p class="text-xs text-slate-400">Pega aquí la URL generada al implementar el script en tu Google Drive para activar la sincronización entre móviles.</p>
+      <div class="flex space-x-2 pt-2">
+        <button onclick="saveSyncSettings()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">Guardar Configuración</button>
+        <button onclick="closeModal('syncModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold py-2.5 rounded-lg text-slate-300">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // REGISTRO DE SERVICE WORKERS PWA
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg error', err));
     }
 
     const USERS = {
-      andy: { name: "Andy", pin: "1234" },
-      mujer: { name: "Mi Mujer", pin: "5678" }
+      andres: { name: "Andres", pin: "1234" },
+      andrea: { name: "Andrea", pin: "5678" }
     };
 
     let currentUser = null;
     let currentPlan = 'comun';
+    let syncUrl = localStorage.getItem('ynab_sync_url') || '';
+
     let db = {
       comun: { accounts: [], envelopes: [], transactions: [], debts: [] },
-      personal_andy: { accounts: [], envelopes: [], transactions: [], debts: [] },
-      personal_mujer: { accounts: [], envelopes: [], transactions: [], debts: [] }
+      personal_andres: { accounts: [], envelopes: [], transactions: [], debts: [] },
+      personal_andrea: { accounts: [], envelopes: [], transactions: [], debts: [] }
     };
 
     function loadDatabase() {
-      const saved = localStorage.getItem('ynab_budget_db_v2');
+      const saved = localStorage.getItem('ynab_budget_db_v3');
       if (saved) {
         db = JSON.parse(saved);
       } else {
@@ -310,38 +330,38 @@
     }
 
     function saveDatabase() {
-      localStorage.setItem('ynab_budget_db_v2', JSON.stringify(db));
+      localStorage.setItem('ynab_budget_db_v3', JSON.stringify(db));
     }
 
     function initDefaultData() {
       db.comun.accounts = [
-        { id: 'c1', name: 'Cuenta Banco 1', balance: 2500 },
-        { id: 'c2', name: 'Cuenta Banco 2', balance: 1200 },
+        { id: 'c1', name: 'Cuenta Banco Compartida 1', balance: 2500 },
+        { id: 'c2', name: 'Cuenta Banco Compartida 2', balance: 1200 },
         { id: 'c3', name: 'Metálico Compartido', balance: 150 }
       ];
       db.comun.envelopes = [
         { id: 'e1', name: 'Supermercado', assigned: 400, spent: 180, goal: 500 },
         { id: 'e2', name: 'Gasolina', assigned: 150, spent: 60, goal: 200 },
-        { id: 'e3', name: 'Cenas & Ocio', assigned: 200, spent: 120, goal: 250 }
+        { id: 'e3', name: 'Cenas & Ocio Familiar', assigned: 200, spent: 120, goal: 250 }
       ];
       db.comun.debts = [
         { id: 'd1', name: 'Préstamo Reforma / Coche', totalAmount: 10000, monthlyPayment: 600, remainingBalance: 8400 }
       ];
 
-      db.personal_andy.accounts = [
-        { id: 'pa1', name: 'Mi Banco Personal', balance: 800 },
-        { id: 'pa2', name: 'Mi Efectivo', balance: 60 }
+      db.personal_andres.accounts = [
+        { id: 'pa1', name: 'Cuenta Personal Andres', balance: 800 },
+        { id: 'pa2', name: 'Efectivo Andres', balance: 60 }
       ];
-      db.personal_andy.envelopes = [
-        { id: 'pe1', name: 'Caprichos Andy', assigned: 100, spent: 30, goal: 150 }
+      db.personal_andres.envelopes = [
+        { id: 'pe1', name: 'Caprichos Andres', assigned: 100, spent: 30, goal: 150 }
       ];
 
-      db.personal_mujer.accounts = [
-        { id: 'pm1', name: 'Banco Personal (Ella)', balance: 950 },
-        { id: 'pm2', name: 'Efectivo (Ella)', balance: 80 }
+      db.personal_andrea.accounts = [
+        { id: 'pm1', name: 'Cuenta Personal Andrea', balance: 950 },
+        { id: 'pm2', name: 'Efectivo Andrea', balance: 80 }
       ];
-      db.personal_mujer.envelopes = [
-        { id: 'pme1', name: 'Caprichos Ella', assigned: 120, spent: 40, goal: 150 }
+      db.personal_andrea.envelopes = [
+        { id: 'pme1', name: 'Caprichos Andrea', assigned: 120, spent: 40, goal: 150 }
       ];
     }
 
@@ -371,7 +391,7 @@
 
     function getActiveKey() {
       if (currentPlan === 'comun') return 'comun';
-      return currentUser === 'andy' ? 'personal_andy' : 'personal_mujer';
+      return currentUser === 'andres' ? 'personal_andres' : 'personal_andrea';
     }
 
     function switchPlan(plan) {
@@ -667,7 +687,7 @@
       render();
     }
 
-    // TRANSACCIONES
+    // TRANSACCIONES & SYNC
     function saveTransaction() {
       const data = db[getActiveKey()];
       const type = document.getElementById('txType').value;
@@ -689,7 +709,7 @@
         if (acc) acc.balance += amount;
       }
 
-      data.transactions.unshift({
+      const newTx = {
         id: 'tx_' + Date.now(),
         type,
         amount,
@@ -697,9 +717,27 @@
         account: accountId,
         envelope: envelopeId,
         payee
-      });
+      };
 
+      data.transactions.unshift(newTx);
       saveDatabase();
+      
+      // SINCRONIZACIÓN CON GOOGLE DRIVE (SI HAY URL)
+      if (syncUrl) {
+        fetch(syncUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user: currentUser,
+            pin: USERS[currentUser].pin,
+            workspace: getActiveKey(),
+            action: 'saveTransaction',
+            transaction: newTx
+          })
+        }).catch(err => console.log('Error de sincronización:', err));
+      }
+
       document.getElementById('txAmount').value = '';
       document.getElementById('txPayee').value = '';
       render();
@@ -724,6 +762,18 @@
       data.transactions = data.transactions.filter(t => t.id !== id);
       saveDatabase();
       render();
+    }
+
+    function openSyncModal() {
+      document.getElementById('syncUrlInput').value = syncUrl;
+      document.getElementById('syncModal').classList.remove('hidden');
+    }
+
+    function saveSyncSettings() {
+      syncUrl = document.getElementById('syncUrlInput').value.trim();
+      localStorage.setItem('ynab_sync_url', syncUrl);
+      closeModal('syncModal');
+      alert("Configuración de sincronización guardada.");
     }
 
     function renderChart() {
@@ -767,3 +817,20 @@
   </script>
 </body>
 </html>
+2️⃣ manifest.json (PWA Manifest)
+{
+  "name": "Presupuesto Familiar YNAB",
+  "short_name": "YNAB Sobres",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='[suspicious link removed]' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✉️</text></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
