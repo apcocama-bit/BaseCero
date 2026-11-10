@@ -6,8 +6,20 @@
   <title>Presupuesto Sobres YNAB</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f172a">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- CARGA DINÁMICA DE LIBRERÍAS EXTERNAS -->
+  <script>
+    function loadScript(url, callback) {
+      const s = document.createElement('script');
+      s.src = url;
+      if (callback) s.onload = callback;
+      document.head.appendChild(s);
+    }
+    loadScript('https://cdn.tailwindcss.com');
+    loadScript('https://'cdn.jsdelivr.net/npm/chart.js', () => {
+      if (window.renderChart) window.renderChart();
+    });
+  </script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-16 font-sans">
 
@@ -87,28 +99,32 @@
       <!-- PESTAÑA 1: SOBRES Y CUENTAS -->
       <div id="tab-dashboard" class="space-y-6">
         
-        <!-- SALDOS EN CUENTAS -->
+        <!-- SALDOS EN CUENTAS (COLAPSABLE) -->
         <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
-          <div class="flex justify-between items-center mb-3">
+          <div class="flex justify-between items-center cursor-pointer" onclick="toggleAccountsCollapse()">
             <h4 class="text-sm font-bold text-slate-300 flex items-center gap-2">
-              <span>🏛️ Cuentas y Efectivo</span>
-              <span id="totalAccountsBalance" class="text-emerald-400 font-extrabold text-sm"></span>
+              <span>🏛️ Total en Cuentas:</span>
+              <span id="totalAccountsBalance" class="text-emerald-400 font-extrabold text-base"></span>
             </h4>
-            <button onclick="openAccountModal()" class="bg-slate-700 hover:bg-slate-600 text-xs text-slate-200 px-3 py-1 rounded-lg font-bold">+ Cuenta</button>
+            <div class="flex items-center space-x-2">
+              <button onclick="event.stopPropagation(); openAccountModal()" class="bg-slate-700 hover:bg-slate-600 text-xs text-slate-200 px-3 py-1 rounded-lg font-bold">+ Cuenta</button>
+              <span id="accountsToggleIcon" class="text-slate-400 text-xs">▼</span>
+            </div>
           </div>
-          <div id="accountsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+          <div id="accountsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 hidden"></div>
         </div>
 
-        <!-- SOBRES Y CATEGORÍAS -->
+        <!-- SOBRES Y CATEGORÍAS (BÁSICOS, EXTRAS, AHORROS...) -->
         <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
-          <div class="flex justify-between items-center mb-4">
-            <h4 class="text-sm font-bold text-slate-300">✉️ Sobres de Gasto</h4>
+          <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+            <h4 class="text-sm font-bold text-slate-300">✉️ Sobres por Categorías</h4>
             <div class="space-x-2">
+              <button onclick="openCategoryModal()" class="bg-slate-700 hover:bg-slate-600 text-xs text-slate-200 px-3 py-1.5 rounded-lg font-bold">+ Categoría</button>
               <button onclick="openMoveMoneyModal()" class="bg-slate-700 hover:bg-slate-600 text-xs text-emerald-300 px-3 py-1.5 rounded-lg font-bold">🔄 Reajustar Sobres</button>
               <button onclick="openEnvelopeModal()" class="bg-emerald-600 hover:bg-emerald-500 text-xs text-white px-3 py-1.5 rounded-lg font-bold">+ Nuevo Sobre</button>
             </div>
           </div>
-          <div id="envelopesContainer" class="space-y-3"></div>
+          <div id="categoriesContainer" class="space-y-6"></div>
         </div>
 
         <!-- GRÁFICO -->
@@ -123,7 +139,8 @@
       <!-- PESTAÑA 2: TRANSACCIONES -->
       <div id="tab-transactions" class="hidden space-y-6">
         <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
-          <h4 class="text-sm font-bold text-slate-300 mb-3">📝 Nueva Transacción</h4>
+          <h4 id="txFormTitle" class="text-sm font-bold text-slate-300 mb-3">📝 Nueva Transacción</h4>
+          <input type="hidden" id="txEditId">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs mb-3">
             <div>
               <label class="block text-slate-400 mb-1">Tipo</label>
@@ -134,7 +151,7 @@
             </div>
             <div>
               <label class="block text-slate-400 mb-1">Importe (€)</label>
-              <input type="number" id="txAmount" placeholder="0.00" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
+              <input type="text" id="txAmount" placeholder="0,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
             </div>
             <div>
               <label class="block text-slate-400 mb-1">Fecha</label>
@@ -150,15 +167,22 @@
             </div>
             <div>
               <label class="block text-slate-400 mb-1">Tercero / Establecimiento</label>
-              <input type="text" id="txPayee" placeholder="Ej: Mercadona / Gasolinera" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
+              <input type="text" id="txPayee" list="payeeDatalist" placeholder="Ej: Mercadona / Gasolinera" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
+              <datalist id="payeeDatalist"></datalist>
             </div>
           </div>
-          <button onclick="saveTransaction()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-xs text-white font-bold py-2.5 rounded-lg transition">Registrar Movimiento</button>
+          <div class="flex space-x-2">
+            <button onclick="saveTransaction()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs text-white font-bold py-2.5 rounded-lg transition">Guardar Movimiento</button>
+            <button id="cancelEditTxBtn" onclick="resetTxForm()" class="hidden bg-slate-700 hover:bg-slate-600 text-xs text-slate-300 font-bold px-4 py-2.5 rounded-lg">Cancelar</button>
+          </div>
         </div>
 
-        <!-- HISTÓRICO DE MOVIMIENTOS -->
+        <!-- HISTÓRICO CON BUSCADOR -->
         <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
-          <h4 class="text-sm font-bold text-slate-300 mb-3">Histórico Cronológico</h4>
+          <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+            <h4 class="text-sm font-bold text-slate-300">Histórico de Transacciones</h4>
+            <input type="text" id="txSearchInput" oninput="renderTransactionsTable()" placeholder="🔍 Buscar por tercero, sobre, cuenta o fecha..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 w-full md:w-72">
+          </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs text-slate-300">
               <thead class="bg-slate-900 text-slate-400 uppercase">
@@ -169,7 +193,7 @@
                   <th class="p-2">Sobre</th>
                   <th class="p-2">Tercero</th>
                   <th class="p-2 text-right">Importe</th>
-                  <th class="p-2 text-center">Acción</th>
+                  <th class="p-2 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody id="txTableBody" class="divide-y divide-slate-700"></tbody>
@@ -192,22 +216,48 @@
     </section>
   </div>
 
-  <!-- MODAL: CREAR / EDITAR SOBRE -->
+  <!-- MODAL: CREAR / EDITAR CATEGORÍA -->
+  <div id="categoryModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
+      <h3 id="catModalTitle" class="text-base font-bold text-emerald-400">Nueva Categoría</h3>
+      <input type="hidden" id="catModalId">
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Nombre de Categoría</label>
+        <input type="text" id="catModalName" placeholder="Ej: Básicos / Extras / Ahorros" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+      </div>
+      <div class="flex space-x-2 pt-2">
+        <button onclick="saveCategory()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">Guardar</button>
+        <button onclick="closeModal('categoryModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold py-2.5 rounded-lg text-slate-300">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CREAR / EDITAR SOBRE (CON FECHA DE OBJETIVO Y CATEGORÍA) -->
   <div id="envelopeModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
       <h3 id="envModalTitle" class="text-base font-bold text-emerald-400">Editar Sobre</h3>
       <input type="hidden" id="envModalId">
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Categoría Padre</label>
+        <select id="envModalCategory" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200"></select>
+      </div>
       <div>
         <label class="block text-xs text-slate-400 mb-1">Nombre del Sobre</label>
         <input type="text" id="envModalName" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
       </div>
       <div>
         <label class="block text-xs text-slate-400 mb-1">Dinero Asignado (€)</label>
-        <input type="number" id="envModalAssigned" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+        <input type="text" id="envModalAssigned" placeholder="0,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
       </div>
-      <div>
-        <label class="block text-xs text-slate-400 mb-1">Objetivo Mensual / Goal (€)</label>
-        <input type="number" id="envModalGoal" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Objetivo / Goal (€)</label>
+          <input type="text" id="envModalGoal" placeholder="500,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Fecha Límite</label>
+          <input type="date" id="envModalGoalDate" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+        </div>
       </div>
       <div class="flex space-x-2 pt-2">
         <button onclick="saveEnvelope()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">Guardar</button>
@@ -227,7 +277,7 @@
       </div>
       <div>
         <label class="block text-xs text-slate-400 mb-1">Saldo Actual (€)</label>
-        <input type="number" id="accModalBalance" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+        <input type="text" id="accModalBalance" placeholder="0,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
       </div>
       <div class="flex space-x-2 pt-2">
         <button onclick="saveAccount()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">Guardar</button>
@@ -250,7 +300,7 @@
       </div>
       <div>
         <label class="block text-xs text-slate-400 mb-1">Importe a Mover (€)</label>
-        <input type="number" id="moveAmount" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+        <input type="text" id="moveAmount" placeholder="0,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
       </div>
       <div class="flex space-x-2 pt-2">
         <button onclick="executeMoveMoney()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">Transferir Fondos</button>
@@ -270,11 +320,11 @@
       </div>
       <div>
         <label class="block text-xs text-slate-400 mb-1">Capital Pendiente Total (€)</label>
-        <input type="number" id="debtModalBalance" step="0.01" placeholder="10000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+        <input type="text" id="debtModalBalance" placeholder="10000,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
       </div>
       <div>
         <label class="block text-xs text-slate-400 mb-1">Cuota Mensual (€)</label>
-        <input type="number" id="debtModalPayment" step="0.01" placeholder="600" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+        <input type="text" id="debtModalPayment" placeholder="600,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
       </div>
       <div class="flex space-x-2 pt-2">
         <button onclick="saveDebt()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">Guardar</button>
@@ -289,7 +339,7 @@
       <h3 class="text-base font-bold text-emerald-400">⚙️ Sincronización Google Drive</h3>
       <div>
         <label class="block text-xs text-slate-400 mb-1">URL Web App Apps Script</label>
-        <input type="url" id="syncUrlInput" placeholder="[suspicious link removed]" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+        <input type="url" id="syncUrlInput" placeholder="Pega aquí la URL de Google Apps Script" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
       </div>
       <p class="text-xs text-slate-400">Pega aquí la URL generada al implementar el script en tu Google Drive para activar la sincronización entre móviles.</p>
       <div class="flex space-x-2 pt-2">
@@ -311,16 +361,37 @@
 
     let currentUser = null;
     let currentPlan = 'comun';
-    let syncUrl = 'https://script.google.com/macros/s/AKfycbwSar31q77Y1rk2EQ6jT3lVUS_Yi2NeVdmhB3GYwJiDibpneO-KryRjnwyRGhvMYiWb/exec';
+    let syncUrl = localStorage.getItem('ynab_sync_url') || '';
+    let accountsCollapsed = true;
 
     let db = {
-      comun: { accounts: [], envelopes: [], transactions: [], debts: [] },
-      personal_andres: { accounts: [], envelopes: [], transactions: [], debts: [] },
-      personal_andrea: { accounts: [], envelopes: [], transactions: [], debts: [] }
+      comun: { categories: [], envelopes: [], accounts: [], transactions: [], debts: [] },
+      personal_andres: { categories: [], envelopes: [], accounts: [], transactions: [], debts: [] },
+      personal_andrea: { categories: [], envelopes: [], accounts: [], transactions: [], debts: [] }
     };
 
+    // FUNCIONES DE FORMATO DE MONEDA Y FECHAS (ES-ES)
+    function formatEuro(val) {
+      const num = Number(val) || 0;
+      return num.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    }
+
+    function formatDate(isoStr) {
+      if (!isoStr) return '';
+      const parts = isoStr.split('-');
+      if (parts.length !== 3) return isoStr;
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    function parseAmount(val) {
+      if (typeof val === 'number') return val;
+      if (!val) return 0;
+      let clean = String(val).replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+      return parseFloat(clean) || 0;
+    }
+
     function loadDatabase() {
-      const saved = localStorage.getItem('ynab_budget_db_v3');
+      const saved = localStorage.getItem('ynab_budget_db_v4');
       if (saved) {
         db = JSON.parse(saved);
       } else {
@@ -330,38 +401,48 @@
     }
 
     function saveDatabase() {
-      localStorage.setItem('ynab_budget_db_v3', JSON.stringify(db));
+      localStorage.setItem('ynab_budget_db_v4', JSON.stringify(db));
     }
 
     function initDefaultData() {
+      const defaultCats = [
+        { id: 'cat_basicos', name: 'Básicos & Fijos' },
+        { id: 'cat_extras', name: 'Extras & Ocio' },
+        { id: 'cat_ahorros', name: 'Ahorro & Objetivos' }
+      ];
+
+      db.comun.categories = JSON.parse(JSON.stringify(defaultCats));
       db.comun.accounts = [
         { id: 'c1', name: 'Cuenta Banco Compartida 1', balance: 2500 },
         { id: 'c2', name: 'Cuenta Banco Compartida 2', balance: 1200 },
         { id: 'c3', name: 'Metálico Compartido', balance: 150 }
       ];
       db.comun.envelopes = [
-        { id: 'e1', name: 'Supermercado', assigned: 400, spent: 180, goal: 500 },
-        { id: 'e2', name: 'Gasolina', assigned: 150, spent: 60, goal: 200 },
-        { id: 'e3', name: 'Cenas & Ocio Familiar', assigned: 200, spent: 120, goal: 250 }
+        { id: 'e1', categoryId: 'cat_basicos', name: 'Supermercado', assigned: 400, spent: 180, goal: 500 },
+        { id: 'e2', categoryId: 'cat_basicos', name: 'Gasolina', assigned: 150, spent: 60, goal: 200 },
+        { id: 'e3', categoryId: 'cat_extras', name: 'Cenas & Ocio Familiar', assigned: 200, spent: 120, goal: 250 },
+        { id: 'e4', categoryId: 'cat_ahorros', name: 'Fondo Vacaciones 2027', assigned: 100, spent: 0, goal: 1200, goalDate: '2027-08-12' }
       ];
       db.comun.debts = [
         { id: 'd1', name: 'Préstamo Reforma / Coche', totalAmount: 10000, monthlyPayment: 600, remainingBalance: 8400 }
       ];
 
+      db.personal_andres.categories = JSON.parse(JSON.stringify(defaultCats));
       db.personal_andres.accounts = [
         { id: 'pa1', name: 'Cuenta Personal Andres', balance: 800 },
         { id: 'pa2', name: 'Efectivo Andres', balance: 60 }
       ];
       db.personal_andres.envelopes = [
-        { id: 'pe1', name: 'Caprichos Andres', assigned: 100, spent: 30, goal: 150 }
+        { id: 'pe1', categoryId: 'cat_extras', name: 'Caprichos Andres', assigned: 100, spent: 30, goal: 150 }
       ];
 
+      db.personal_andrea.categories = JSON.parse(JSON.stringify(defaultCats));
       db.personal_andrea.accounts = [
         { id: 'pm1', name: 'Cuenta Personal Andrea', balance: 950 },
         { id: 'pm2', name: 'Efectivo Andrea', balance: 80 }
       ];
       db.personal_andrea.envelopes = [
-        { id: 'pme1', name: 'Caprichos Andrea', assigned: 120, spent: 40, goal: 150 }
+        { id: 'pme1', categoryId: 'cat_extras', name: 'Caprichos Andrea', assigned: 120, spent: 40, goal: 150 }
       ];
     }
 
@@ -405,8 +486,21 @@
       render();
     }
 
+    function toggleAccountsCollapse() {
+      accountsCollapsed = !accountsCollapsed;
+      document.getElementById('accountsGrid').classList.toggle('hidden', accountsCollapsed);
+      document.getElementById('accountsToggleIcon').innerText = accountsCollapsed ? '▼' : '▲';
+    }
+
     function render() {
       const data = db[getActiveKey()];
+      if (!data.categories || data.categories.length === 0) {
+        data.categories = [
+          { id: 'cat_basicos', name: 'Básicos & Fijos' },
+          { id: 'cat_extras', name: 'Extras & Ocio' },
+          { id: 'cat_ahorros', name: 'Ahorro & Objetivos' }
+        ];
+      }
 
       const totalBankMoney = data.accounts.reduce((sum, a) => sum + Number(a.balance), 0);
       const totalAssignedMoney = data.envelopes.reduce((sum, e) => sum + Number(e.assigned), 0);
@@ -416,7 +510,7 @@
       const rtaAmount = document.getElementById('rtaAmount');
       const rtaMessage = document.getElementById('rtaMessage');
 
-      rtaAmount.innerText = readyToAssign.toFixed(2) + ' €';
+      rtaAmount.innerText = formatEuro(readyToAssign);
 
       if (readyToAssign === 0) {
         rtaBanner.className = "bg-slate-800 border border-emerald-500 rounded-2xl p-5 mb-6 shadow-xl text-center text-emerald-400";
@@ -430,13 +524,13 @@
       }
 
       // CUENTAS
-      document.getElementById('totalAccountsBalance').innerText = totalBankMoney.toFixed(2) + ' €';
+      document.getElementById('totalAccountsBalance').innerText = formatEuro(totalBankMoney);
       const accountsGrid = document.getElementById('accountsGrid');
       accountsGrid.innerHTML = data.accounts.map(a => `
         <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
           <div>
             <span class="text-slate-400 text-xs block font-semibold">${a.name}</span>
-            <span class="text-base font-bold text-slate-100">${Number(a.balance).toFixed(2)} €</span>
+            <span class="text-base font-bold text-slate-100">${formatEuro(a.balance)}</span>
           </div>
           <div class="space-x-1">
             <button onclick="openAccountModal('${a.id}')" class="text-slate-400 hover:text-emerald-400 text-xs p-1">✏️</button>
@@ -445,42 +539,79 @@
         </div>
       `).join('');
 
-      // SOBRES
-      const envContainer = document.getElementById('envelopesContainer');
-      envContainer.innerHTML = data.envelopes.map(e => {
-        const available = Number(e.assigned) - Number(e.spent);
-        const pct = e.goal ? Math.min(100, Math.round((Number(e.spent) / Number(e.goal)) * 100)) : 0;
+      // SOBRES AGRUPADOS POR CATEGORÍAS
+      const catContainer = document.getElementById('categoriesContainer');
+      catContainer.innerHTML = data.categories.map(cat => {
+        const catEnvelopes = data.envelopes.filter(e => e.categoryId === cat.id || (!e.categoryId && cat.id === 'cat_basicos'));
         return `
-          <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-2">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-slate-200 text-sm">${e.name}</span>
-              <div class="flex items-center space-x-2">
-                <span class="text-xs font-bold ${available >= 0 ? 'text-emerald-400' : 'text-red-400'}">
-                  Disponible: ${available.toFixed(2)} €
-                </span>
-                <button onclick="openEnvelopeModal('${e.id}')" class="text-slate-400 hover:text-emerald-400 text-xs">✏️</button>
-                <button onclick="deleteEnvelope('${e.id}')" class="text-slate-400 hover:text-red-400 text-xs">🗑️</button>
+          <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700/80 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+              <h5 class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                📁 <span>${cat.name}</span>
+              </h5>
+              <div class="space-x-1">
+                <button onclick="openCategoryModal('${cat.id}')" class="text-slate-400 hover:text-emerald-400 text-xs p-1">✏️</button>
+                <button onclick="deleteCategory('${cat.id}')" class="text-slate-400 hover:text-red-400 text-xs p-1">🗑️</button>
               </div>
             </div>
-            <div class="flex justify-between text-xs text-slate-400">
-              <span>Asignado: ${Number(e.assigned).toFixed(2)} €</span>
-              <span>Gastado: ${Number(e.spent).toFixed(2)} €</span>
-              ${e.goal ? `<span>Objetivo: ${Number(e.goal).toFixed(2)} €</span>` : ''}
+            <div class="space-y-3">
+              ${catEnvelopes.length === 0 ? '<p class="text-xs text-slate-500 italic">Sin sobres en esta categoría.</p>' : ''}
+              ${catEnvelopes.map(e => {
+                const available = Number(e.assigned) - Number(e.spent);
+                const pct = e.goal ? Math.min(100, Math.round((Number(e.spent) / Number(e.goal)) * 100)) : 0;
+                
+                // CÁLCULO DE CUOTA MENSUAL SI HAY FECHA OBJETIVO
+                let goalCalcText = '';
+                if (e.goal && e.goalDate) {
+                  const target = new Date(e.goalDate);
+                  const now = new Date();
+                  let monthsLeft = (target.getFullYear() - now.getFullYear()) * 12 + (target.getMonth() - now.getMonth());
+                  if (target.getDate() > now.getDate()) monthsLeft += 1;
+                  monthsLeft = Math.max(1, monthsLeft);
+                  const remainingNeeded = Math.max(0, Number(e.goal) - available);
+                  const monthlyNeed = remainingNeeded / monthsLeft;
+                  goalCalcText = `<div class="text-[11px] text-emerald-300 font-semibold mt-1">🗓️ Meta: ${formatEuro(e.goal)} para ${formatDate(e.goalDate)} (Asignar ~${formatEuro(monthlyNeed)}/mes)</div>`;
+                }
+
+                return `
+                  <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-700 space-y-2">
+                    <div class="flex justify-between items-center">
+                      <span class="font-bold text-slate-200 text-xs">${e.name}</span>
+                      <div class="flex items-center space-x-2">
+                        <span class="text-xs font-bold ${available >= 0 ? 'text-emerald-400' : 'text-red-400'}">
+                          Disponible: ${formatEuro(available)}
+                        </span>
+                        <button onclick="openEnvelopeModal('${e.id}')" class="text-slate-400 hover:text-emerald-400 text-xs">✏️</button>
+                        <button onclick="deleteEnvelope('${e.id}')" class="text-slate-400 hover:text-red-400 text-xs">🗑️</button>
+                      </div>
+                    </div>
+                    <div class="flex justify-between text-[11px] text-slate-400">
+                      <span>Asignado: ${formatEuro(e.assigned)}</span>
+                      <span>Gastado: ${formatEuro(e.spent)}</span>
+                      ${e.goal && !e.goalDate ? `<span>Objetivo: ${formatEuro(e.goal)}</span>` : ''}
+                    </div>
+                    ${goalCalcText}
+                    ${e.goal ? `
+                      <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                        <div class="bg-emerald-500 h-1.5 rounded-full" style="width: ${pct}%"></div>
+                      </div>
+                    ` : ''}
+                  </div>
+                `;
+              }).join('')}
             </div>
-            ${e.goal ? `
-              <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-                <div class="bg-emerald-500 h-2 rounded-full" style="width: ${pct}%"></div>
-              </div>
-            ` : ''}
           </div>
         `;
       }).join('');
 
-      // SELECTS FORMULARIO TRANSACCIONES
+      // SELECTS PARA TRANSACCIONES
       const txAccount = document.getElementById('txAccount');
       txAccount.innerHTML = data.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
       const txEnvelope = document.getElementById('txEnvelope');
       txEnvelope.innerHTML = data.envelopes.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+
+      // AUTOCOMPLETADO DE TERCEROS
+      updatePayeeDatalist();
 
       // DEUDAS
       const debtsContainer = document.getElementById('debtsContainer');
@@ -488,56 +619,126 @@
         <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
           <div>
             <h5 class="font-bold text-slate-200 text-sm">${d.name}</h5>
-            <p class="text-xs text-slate-400">Cuota mensual: ${Number(d.monthlyPayment).toFixed(2)} €/mes</p>
+            <p class="text-xs text-slate-400">Cuota mensual: ${formatEuro(d.monthlyPayment)}/mes</p>
           </div>
           <div class="flex items-center space-x-3 text-right">
             <div>
               <span class="text-xs text-slate-400 block">Pendiente</span>
-              <div class="text-base font-bold text-red-400">${Number(d.remainingBalance).toFixed(2)} €</div>
+              <div class="text-base font-bold text-red-400">${formatEuro(d.remainingBalance)}</div>
             </div>
             <button onclick="deleteDebt('${d.id}')" class="text-slate-400 hover:text-red-400 text-xs">🗑️</button>
           </div>
         </div>
       `).join('');
 
-      // TABLA HISTÓRICO
+      renderTransactionsTable();
+      renderChart();
+    }
+
+    function updatePayeeDatalist() {
+      const data = db[getActiveKey()];
+      const payees = [...new Set(data.transactions.map(t => t.payee).filter(Boolean))];
+      const datalist = document.getElementById('payeeDatalist');
+      if (datalist) {
+        datalist.innerHTML = payees.map(p => `<option value="${p}">`).join('');
+      }
+    }
+
+    function renderTransactionsTable() {
+      const data = db[getActiveKey()];
+      const query = (document.getElementById('txSearchInput')?.value || '').toLowerCase();
       const tbody = document.getElementById('txTableBody');
-      tbody.innerHTML = data.transactions.map(t => {
+
+      const filtered = data.transactions.filter(t => {
+        const acc = data.accounts.find(a => a.id === t.account);
+        const env = data.envelopes.find(e => e.id === t.envelope);
+        const text = `${t.date} ${formatDate(t.date)} ${t.type} ${t.payee || ''} ${acc ? acc.name : ''} ${env ? env.name : ''}`.toLowerCase();
+        return text.includes(query);
+      });
+
+      tbody.innerHTML = filtered.map(t => {
         const acc = data.accounts.find(a => a.id === t.account);
         const env = data.envelopes.find(e => e.id === t.envelope);
         return `
           <tr class="hover:bg-slate-800/50">
-            <td class="p-2">${t.date}</td>
+            <td class="p-2 font-mono">${formatDate(t.date)}</td>
             <td class="p-2 font-semibold ${t.type === 'ingreso' ? 'text-emerald-400' : 'text-red-400'}">${t.type.toUpperCase()}</td>
             <td class="p-2">${acc ? acc.name : '-'}</td>
             <td class="p-2">${env ? env.name : '-'}</td>
             <td class="p-2">${t.payee || '-'}</td>
-            <td class="p-2 text-right font-bold ${t.type === 'ingreso' ? 'text-emerald-400' : 'text-slate-200'}">${Number(t.amount).toFixed(2)} €</td>
-            <td class="p-2 text-center">
-              <button onclick="deleteTransaction('${t.id}')" class="text-red-400 hover:text-red-300">🗑️</button>
+            <td class="p-2 text-right font-bold ${t.type === 'ingreso' ? 'text-emerald-400' : 'text-slate-200'}">${formatEuro(t.amount)}</td>
+            <td class="p-2 text-center space-x-1">
+              <button onclick="editTransaction('${t.id}')" class="text-slate-400 hover:text-emerald-400">✏️</button>
+              <button onclick="deleteTransaction('${t.id}')" class="text-slate-400 hover:text-red-400">🗑️</button>
             </td>
           </tr>
         `;
       }).join('');
+    }
 
-      renderChart();
+    // CRUD CATEGORÍAS
+    function openCategoryModal(id = null) {
+      const data = db[getActiveKey()];
+      document.getElementById('catModalId').value = id || '';
+      if (id) {
+        const cat = data.categories.find(c => c.id === id);
+        document.getElementById('catModalTitle').innerText = "Editar Categoría";
+        document.getElementById('catModalName').value = cat.name;
+      } else {
+        document.getElementById('catModalTitle').innerText = "Nueva Categoría";
+        document.getElementById('catModalName').value = '';
+      }
+      document.getElementById('categoryModal').classList.remove('hidden');
+    }
+
+    function saveCategory() {
+      const data = db[getActiveKey()];
+      const id = document.getElementById('catModalId').value;
+      const name = document.getElementById('catModalName').value.trim();
+
+      if (!name) return alert("Introduce un nombre.");
+
+      if (id) {
+        const cat = data.categories.find(c => c.id === id);
+        if (cat) cat.name = name;
+      } else {
+        data.categories.push({ id: 'cat_' + Date.now(), name });
+      }
+
+      saveDatabase();
+      closeModal('categoryModal');
+      render();
+    }
+
+    function deleteCategory(id) {
+      if (!confirm("¿Eliminar esta categoría? Los sobres asociados se moverán a la categoría por defecto.")) return;
+      const data = db[getActiveKey()];
+      data.categories = data.categories.filter(c => c.id !== id);
+      saveDatabase();
+      render();
     }
 
     // CRUD SOBRES
     function openEnvelopeModal(id = null) {
       const data = db[getActiveKey()];
+      const catSel = document.getElementById('envModalCategory');
+      catSel.innerHTML = data.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
       document.getElementById('envModalId').value = id || '';
       if (id) {
         const env = data.envelopes.find(e => e.id === id);
         document.getElementById('envModalTitle').innerText = "Editar Sobre";
+        document.getElementById('envModalCategory').value = env.categoryId || data.categories[0]?.id;
         document.getElementById('envModalName').value = env.name;
         document.getElementById('envModalAssigned').value = env.assigned;
         document.getElementById('envModalGoal').value = env.goal || '';
+        document.getElementById('envModalGoalDate').value = env.goalDate || '';
       } else {
         document.getElementById('envModalTitle').innerText = "Nuevo Sobre";
         document.getElementById('envModalName').value = '';
         document.getElementById('envModalAssigned').value = '0';
         document.getElementById('envModalGoal').value = '';
+        document.getElementById('envModalGoalDate').value = '';
       }
       document.getElementById('envelopeModal').classList.remove('hidden');
     }
@@ -545,19 +746,23 @@
     function saveEnvelope() {
       const data = db[getActiveKey()];
       const id = document.getElementById('envModalId').value;
+      const categoryId = document.getElementById('envModalCategory').value;
       const name = document.getElementById('envModalName').value.trim();
-      const assigned = Number(document.getElementById('envModalAssigned').value) || 0;
-      const goal = Number(document.getElementById('envModalGoal').value) || 0;
+      const assigned = parseAmount(document.getElementById('envModalAssigned').value);
+      const goal = parseAmount(document.getElementById('envModalGoal').value);
+      const goalDate = document.getElementById('envModalGoalDate').value;
 
       if (!name) return alert("Introduce un nombre para el sobre.");
 
       if (id) {
         const env = data.envelopes.find(e => e.id === id);
+        env.categoryId = categoryId;
         env.name = name;
         env.assigned = assigned;
         env.goal = goal;
+        env.goalDate = goalDate;
       } else {
-        data.envelopes.push({ id: 'e_' + Date.now(), name, assigned, spent: 0, goal });
+        data.envelopes.push({ id: 'e_' + Date.now(), categoryId, name, assigned, spent: 0, goal, goalDate });
       }
 
       saveDatabase();
@@ -594,7 +799,7 @@
       const data = db[getActiveKey()];
       const id = document.getElementById('accModalId').value;
       const name = document.getElementById('accModalName').value.trim();
-      const balance = Number(document.getElementById('accModalBalance').value) || 0;
+      const balance = parseAmount(document.getElementById('accModalBalance').value);
 
       if (!name) return alert("Introduce el nombre de la cuenta.");
 
@@ -619,12 +824,12 @@
       render();
     }
 
-    // REAJUSTE DE SOBRES (ROLL WITH THE PUNCHES)
+    // REAJUSTE DE SOBRES
     function openMoveMoneyModal() {
       const data = db[getActiveKey()];
       const fromSel = document.getElementById('moveFromEnv');
       const toSel = document.getElementById('moveToEnv');
-      const opts = data.envelopes.map(e => `<option value="${e.id}">${e.name} (Disp: ${(e.assigned - e.spent).toFixed(2)}€)</option>`).join('');
+      const opts = data.envelopes.map(e => `<option value="${e.id}">${e.name} (Disp: ${formatEuro(e.assigned - e.spent)})</option>`).join('');
       fromSel.innerHTML = opts;
       toSel.innerHTML = opts;
       document.getElementById('moveMoneyModal').classList.remove('hidden');
@@ -634,7 +839,7 @@
       const data = db[getActiveKey()];
       const fromId = document.getElementById('moveFromEnv').value;
       const toId = document.getElementById('moveToEnv').value;
-      const amount = Number(document.getElementById('moveAmount').value);
+      const amount = parseAmount(document.getElementById('moveAmount').value);
 
       if (fromId === toId) return alert("Selecciona dos sobres distintos.");
       if (!amount || amount <= 0) return alert("Introduce un importe válido.");
@@ -661,8 +866,8 @@
     function saveDebt() {
       const data = db[getActiveKey()];
       const name = document.getElementById('debtModalName').value.trim();
-      const totalAmount = Number(document.getElementById('debtModalBalance').value) || 0;
-      const monthlyPayment = Number(document.getElementById('debtModalPayment').value) || 0;
+      const totalAmount = parseAmount(document.getElementById('debtModalBalance').value);
+      const monthlyPayment = parseAmount(document.getElementById('debtModalPayment').value);
 
       if (!name) return alert("Introduce un concepto.");
 
@@ -687,21 +892,46 @@
       render();
     }
 
-    // TRANSACCIONES & SYNC
+    // TRANSACCIONES (CREACIÓN Y EDICIÓN)
     function saveTransaction() {
       const data = db[getActiveKey()];
+      const editId = document.getElementById('txEditId').value;
       const type = document.getElementById('txType').value;
-      const amount = Number(document.getElementById('txAmount').value);
+      const amount = parseAmount(document.getElementById('txAmount').value);
       const date = document.getElementById('txDate').value;
       const accountId = document.getElementById('txAccount').value;
       const envelopeId = document.getElementById('txEnvelope').value;
-      const payee = document.getElementById('txPayee').value;
+      const payee = document.getElementById('txPayee').value.trim();
 
-      if (!amount || amount <= 0 || !date) return alert("Introduce importe y fecha.");
+      if (!amount || amount <= 0 || !date) return alert("Introduce importe y fecha válidos.");
 
+      if (editId) {
+        // REVERTIR IMPACTO ANTERIOR
+        const oldTx = data.transactions.find(t => t.id === editId);
+        if (oldTx) {
+          const oldAcc = data.accounts.find(a => a.id === oldTx.account);
+          const oldEnv = data.envelopes.find(e => e.id === oldTx.envelope);
+          if (oldTx.type === 'gasto') {
+            if (oldAcc) oldAcc.balance += oldTx.amount;
+            if (oldEnv) oldEnv.spent -= oldTx.amount;
+          } else if (oldTx.type === 'ingreso') {
+            if (oldAcc) oldAcc.balance -= oldTx.amount;
+          }
+          oldTx.type = type;
+          oldTx.amount = amount;
+          oldTx.date = date;
+          oldTx.account = accountId;
+          oldTx.envelope = envelopeId;
+          oldTx.payee = payee;
+        }
+      } else {
+        const newTx = { id: 'tx_' + Date.now(), type, amount, date, account: accountId, envelope: envelopeId, payee };
+        data.transactions.unshift(newTx);
+      }
+
+      // APLICAR NUEVO IMPACTO
       const acc = data.accounts.find(a => a.id === accountId);
       const env = data.envelopes.find(e => e.id === envelopeId);
-
       if (type === 'gasto') {
         if (acc) acc.balance -= amount;
         if (env) env.spent += amount;
@@ -709,38 +939,35 @@
         if (acc) acc.balance += amount;
       }
 
-      const newTx = {
-        id: 'tx_' + Date.now(),
-        type,
-        amount,
-        date,
-        account: accountId,
-        envelope: envelopeId,
-        payee
-      };
-
-      data.transactions.unshift(newTx);
       saveDatabase();
-      
-      // SINCRONIZACIÓN CON GOOGLE DRIVE (SI HAY URL)
-      if (syncUrl) {
-        fetch(syncUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user: currentUser,
-            pin: USERS[currentUser].pin,
-            workspace: getActiveKey(),
-            action: 'saveTransaction',
-            transaction: newTx
-          })
-        }).catch(err => console.log('Error de sincronización:', err));
-      }
+      resetTxForm();
+      render();
+    }
 
+    function editTransaction(id) {
+      const data = db[getActiveKey()];
+      const tx = data.transactions.find(t => t.id === id);
+      if (!tx) return;
+
+      document.getElementById('txEditId').value = tx.id;
+      document.getElementById('txType').value = tx.type;
+      document.getElementById('txAmount').value = tx.amount.toString().replace('.', ',');
+      document.getElementById('txDate').value = tx.date;
+      document.getElementById('txAccount').value = tx.account;
+      document.getElementById('txEnvelope').value = tx.envelope;
+      document.getElementById('txPayee').value = tx.payee || '';
+
+      document.getElementById('txFormTitle').innerText = "✏️ Editar Transacción";
+      document.getElementById('cancelEditTxBtn').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetTxForm() {
+      document.getElementById('txEditId').value = '';
       document.getElementById('txAmount').value = '';
       document.getElementById('txPayee').value = '';
-      render();
+      document.getElementById('txFormTitle').innerText = "📝 Nueva Transacción";
+      document.getElementById('cancelEditTxBtn').classList.add('hidden');
     }
 
     function deleteTransaction(id) {
@@ -777,7 +1004,9 @@
     }
 
     function renderChart() {
-      const ctx = document.getElementById('budgetChart').getContext('2d');
+      const canvas = document.getElementById('budgetChart');
+      if (!canvas || typeof Chart === 'undefined') return;
+      const ctx = canvas.getContext('2d');
       if (window.myChart) window.myChart.destroy();
       
       const data = db[getActiveKey()];
@@ -786,8 +1015,8 @@
         data: {
           labels: data.envelopes.map(e => e.name),
           datasets: [
-            { label: 'Asignado (€)', data: data.envelopes.map(e => e.assigned), backgroundColor: '#059669' },
-            { label: 'Gastado (€)', data: data.envelopes.map(e => e.spent), backgroundColor: '#dc2626' }
+            { label: 'Asignado (€)', data: data.envelopes.map(e => Number(e.assigned)), backgroundColor: '#059669' },
+            { label: 'Gastado (€)', data: data.envelopes.map(e => Number(e.spent)), backgroundColor: '#dc2626' }
           ]
         },
         options: {
@@ -817,7 +1046,3 @@
   </script>
 </body>
 </html>
-
-    }
-  ]
-}
