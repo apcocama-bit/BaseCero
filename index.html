@@ -7,19 +7,14 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f172a">
   
-  <!-- CARGA DINÁMICA DE LIBRERÍAS EXTERNAS -->
-  <script>
-    function loadScript(url, callback) {
-      const s = document.createElement('script');
-      s.src = url;
-      if (callback) s.onload = callback;
-      document.head.appendChild(s);
-    }
-    loadScript('https://cdn.tailwindcss.com');
-    loadScript('https://'cdn.jsdelivr.net/npm/chart.js', () => {
-      if (window.renderChart) window.renderChart();
-    });
-  </script>
+  <!-- ESTILO DE CONTROL BASE (Evita que los modales se muestren desordenados antes de cargar CSS) -->
+  <style>
+    .hidden { display: none !important; }
+  </style>
+
+  <!-- LIBRERÍAS EXTERNAS (Tailwind CSS & Chart.js) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-16 font-sans">
 
@@ -53,7 +48,7 @@
     </div>
   </div>
 
-  <!-- CONTENEDOR PRINCIPAL -->
+  <!-- CONTENEDOR PRINCIPAL DE LA APP -->
   <div id="appScreen" class="hidden">
     
     <!-- CABECERA DE CONTROL -->
@@ -114,7 +109,7 @@
           <div id="accountsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 hidden"></div>
         </div>
 
-        <!-- SOBRES Y CATEGORÍAS (BÁSICOS, EXTRAS, AHORROS...) -->
+        <!-- SOBRES Y CATEGORÍAS -->
         <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
           <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
             <h4 class="text-sm font-bold text-slate-300">✉️ Sobres por Categorías</h4>
@@ -216,7 +211,7 @@
     </section>
   </div>
 
-  <!-- MODAL: CREAR / EDITAR CATEGORÍA -->
+  <!-- MODALES EMERGENTES -->
   <div id="categoryModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
       <h3 id="catModalTitle" class="text-base font-bold text-emerald-400">Nueva Categoría</h3>
@@ -232,7 +227,6 @@
     </div>
   </div>
 
-  <!-- MODAL: CREAR / EDITAR SOBRE (CON FECHA DE OBJETIVO Y CATEGORÍA) -->
   <div id="envelopeModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
       <h3 id="envModalTitle" class="text-base font-bold text-emerald-400">Editar Sobre</h3>
@@ -266,7 +260,6 @@
     </div>
   </div>
 
-  <!-- MODAL: CREAR / EDITAR CUENTA -->
   <div id="accountModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
       <h3 id="accModalTitle" class="text-base font-bold text-emerald-400">Gestión de Cuenta</h3>
@@ -286,7 +279,6 @@
     </div>
   </div>
 
-  <!-- MODAL: REAJUSTE ENTRE SOBRES (ROLL WITH THE PUNCHES) -->
   <div id="moveMoneyModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
       <h3 class="text-base font-bold text-emerald-400">🔄 Reajustar Sobres</h3>
@@ -309,7 +301,6 @@
     </div>
   </div>
 
-  <!-- MODAL: CREAR / EDITAR DEUDA -->
   <div id="debtModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
       <h3 id="debtModalTitle" class="text-base font-bold text-emerald-400">Añadir Préstamo</h3>
@@ -333,7 +324,6 @@
     </div>
   </div>
 
-  <!-- MODAL: AJUSTES SINCRONIZACIÓN GOOGLE DRIVE -->
   <div id="syncModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
       <h3 class="text-base font-bold text-emerald-400">⚙️ Sincronización Google Drive</h3>
@@ -349,6 +339,7 @@
     </div>
   </div>
 
+  <!-- LÓGICA DE CONTROL JAVASCRIPT -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg error', err));
@@ -366,11 +357,10 @@
 
     let db = {
       comun: { categories: [], envelopes: [], accounts: [], transactions: [], debts: [] },
-      personal_andres: { categories: [], envelopes: [], accounts: [], transactions: [], debts: [] },
-      personal_andrea: { categories: [], envelopes: [], accounts: [], transactions: [], debts: [] }
+      personal_andres: { categories: [], envelopes: [], transactions: [], debts: [] },
+      personal_andrea: { categories: [], envelopes: [], transactions: [], debts: [] }
     };
 
-    // FUNCIONES DE FORMATO DE MONEDA Y FECHAS (ES-ES)
     function formatEuro(val) {
       const num = Number(val) || 0;
       return num.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
@@ -539,7 +529,7 @@
         </div>
       `).join('');
 
-      // SOBRES AGRUPADOS POR CATEGORÍAS
+      // SOBRES Y CATEGORÍAS
       const catContainer = document.getElementById('categoriesContainer');
       catContainer.innerHTML = data.categories.map(cat => {
         const catEnvelopes = data.envelopes.filter(e => e.categoryId === cat.id || (!e.categoryId && cat.id === 'cat_basicos'));
@@ -560,7 +550,6 @@
                 const available = Number(e.assigned) - Number(e.spent);
                 const pct = e.goal ? Math.min(100, Math.round((Number(e.spent) / Number(e.goal)) * 100)) : 0;
                 
-                // CÁLCULO DE CUOTA MENSUAL SI HAY FECHA OBJETIVO
                 let goalCalcText = '';
                 if (e.goal && e.goalDate) {
                   const target = new Date(e.goalDate);
@@ -610,7 +599,6 @@
       const txEnvelope = document.getElementById('txEnvelope');
       txEnvelope.innerHTML = data.envelopes.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
 
-      // AUTOCOMPLETADO DE TERCEROS
       updatePayeeDatalist();
 
       // DEUDAS
@@ -711,7 +699,7 @@
     }
 
     function deleteCategory(id) {
-      if (!confirm("¿Eliminar esta categoría? Los sobres asociados se moverán a la categoría por defecto.")) return;
+      if (!confirm("¿Eliminar esta categoría?")) return;
       const data = db[getActiveKey()];
       data.categories = data.categories.filter(c => c.id !== id);
       saveDatabase();
@@ -892,7 +880,7 @@
       render();
     }
 
-    // TRANSACCIONES (CREACIÓN Y EDICIÓN)
+    // TRANSACCIONES
     function saveTransaction() {
       const data = db[getActiveKey()];
       const editId = document.getElementById('txEditId').value;
@@ -906,7 +894,6 @@
       if (!amount || amount <= 0 || !date) return alert("Introduce importe y fecha válidos.");
 
       if (editId) {
-        // REVERTIR IMPACTO ANTERIOR
         const oldTx = data.transactions.find(t => t.id === editId);
         if (oldTx) {
           const oldAcc = data.accounts.find(a => a.id === oldTx.account);
@@ -929,7 +916,6 @@
         data.transactions.unshift(newTx);
       }
 
-      // APLICAR NUEVO IMPACTO
       const acc = data.accounts.find(a => a.id === accountId);
       const env = data.envelopes.find(e => e.id === envelopeId);
       if (type === 'gasto') {
