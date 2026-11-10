@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presupuesto Sobres YNAB</title>
+  <script src="[suspicious link removed]"></script>
+  <script src="[suspicious link removed]"></script>
+  <link rel="manifest" href="data:application/manifest+json,{
+    %22name%22:%22Presupuesto%20YNAB%22,
+    %22short_name%22:%22YNAB%20Sobres%22,
+    %22start_url%22:%22.%22,
+    %22display%22:%22standalone%22,
+    %22background_color%22:%22#0f172a%22,
+    %22theme_color%22:%22#0f172a%22
+  }">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-12 font-sans">
+
+  <!-- PANTALLA DE AUTENTICACIÓN / SELECCIÓN DE USUARIO -->
+  <div id="authScreen" class="flex flex-col items-center justify-center min-h-screen p-4">
+    <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl w-full max-w-md text-center">
+      <div class="text-4xl mb-4">✉️</div>
+      <h1 class="text-2xl font-bold mb-2 text-emerald-400">Presupuesto Familiar YNAB</h1>
+      <p class="text-slate-400 text-sm mb-6">Selecciona tu usuario e introduce tu PIN personal</p>
+      
+      <div class="space-y-4 mb-6">
+        <label class="block text-left text-xs font-semibold text-slate-400 uppercase">Usuario</label>
+        <select id="userSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-emerald-500">
+          <option value="andy">Andy (Tú)</option>
+          <option value="mujer">Mi Mujer</option>
+        </select>
+
+        <label class="block text-left text-xs font-semibold text-slate-400 uppercase">PIN de Seguridad (4 Dígitos)</label>
+        <input type="password" id="pinInput" placeholder="****" maxlength="4" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-center text-2xl tracking-widest text-emerald-400 focus:outline-none focus:border-emerald-500">
+      </div>
+
+      <button onclick="login()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-lg">
+        Iniciar Sesión
+      </button>
+      
+      <p id="authError" class="text-red-400 text-xs mt-3 hidden">PIN incorrecto para el usuario seleccionado.</p>
+    </div>
+  </div>
+
+  <!-- APLICACIÓN PRINCIPAL (OCULTA POR DEFECTO) -->
+  <div id="appScreen" class="hidden">
+    
+    <!-- BARRA SUPERIOR CON NAVEGACIÓN Y SELECTOR DE PLAN -->
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 px-4 py-3 shadow-md">
+      <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl">✉️</span>
+          <div>
+            <h2 class="font-bold text-slate-100 leading-tight">Presupuesto YNAB</h2>
+            <span id="currentUserBadge" class="text-xs text-emerald-400 font-medium"></span>
+          </div>
+        </div>
+
+        <!-- SELECTOR DE PLAN / ENTORNO -->
+        <div class="flex items-center space-x-2 bg-slate-900 p-1 rounded-xl border border-slate-700">
+          <button id="planComunBtn" onclick="switchPlan('comun')" class="px-3 py-1.5 text-xs font-bold rounded-lg transition">🏠 Plan Común</button>
+          <button id="planPersonalBtn" onclick="switchPlan('personal')" class="px-3 py-1.5 text-xs font-bold rounded-lg transition">🔒 Mi Plan Privado</button>
+        </div>
+
+        <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-xs underline">Cerrar Sesión</button>
+      </div>
+    </header>
+
+    <!-- POZO CENTRAL: LISTO PARA ASIGNAR (READY TO ASSIGN) -->
+    <section class="max-w-5xl mx-auto p-4">
+      <div id="rtaBanner" class="bg-slate-800 border rounded-2xl p-6 mb-6 shadow-xl text-center transition-all">
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Pozo Central de Fondos</span>
+        <h3 class="text-sm font-bold text-slate-300 mt-1">Listo para Asignar (Ready to Assign)</h3>
+        <div id="rtaAmount" class="text-4xl font-black my-2">0,00 €</div>
+        <p id="rtaMessage" class="text-xs text-slate-400"></p>
+      </div>
+
+      <!-- SECCIÓN DE NAVEGACIÓN POR PESTAÑAS -->
+      <div class="flex border-b border-slate-700 mb-6 space-x-4">
+        <button onclick="showTab('dashboard')" class="tab-btn font-bold text-sm pb-2 border-b-2 border-emerald-500 text-emerald-400">📊 Dashboard & Sobres</button>
+        <button onclick="showTab('transactions')" class="tab-btn font-bold text-sm pb-2 text-slate-400 hover:text-slate-200">📝 Movimientos</button>
+        <button onclick="showTab('debts')" class="tab-btn font-bold text-sm pb-2 text-slate-400 hover:text-slate-200">💳 Deudas & Préstamos</button>
+      </div>
+
+      <!-- PESTAÑA 1: DASHBOARD Y SOBRES -->
+      <div id="tab-dashboard" class="space-y-6">
+        
+        <!-- RESUMEN DE CUENTAS / FONDOS -->
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+          <h4 class="text-sm font-bold text-slate-300 mb-3 flex justify-between items-center">
+            <span>🏛️ Saldos en Cuentas y Efectivo</span>
+            <span id="totalAccountsBalance" class="text-emerald-400 font-extrabold"></span>
+          </h4>
+          <div id="accountsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+        </div>
+
+        <!-- SISTEMA DE SOBRES / CATEGORÍAS -->
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-sm font-bold text-slate-300">✉️ Sobres y Categorías</h4>
+            <div class="space-x-2">
+              <button onclick="openMoveMoneyModal()" class="bg-slate-700 hover:bg-slate-600 text-xs text-emerald-300 px-3 py-1.5 rounded-lg font-bold">🔄 Reajustar Sobres</button>
+              <button onclick="openNewEnvelopeModal()" class="bg-emerald-600 hover:bg-emerald-500 text-xs text-white px-3 py-1.5 rounded-lg font-bold">+ Nuevo Sobre</button>
+            </div>
+          </div>
+
+          <div id="envelopesContainer" class="space-y-4"></div>
+        </div>
+
+        <!-- GRÁFICAS Y ANALÍTICA -->
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+          <h4 class="text-sm font-bold text-slate-300 mb-4">📈 Comparativa Entradas vs. Salidas</h4>
+          <div class="h-64">
+            <canvas id="budgetChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- PESTAÑA 2: MOVIMIENTOS -->
+      <div id="tab-transactions" class="hidden space-y-6">
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-sm font-bold text-slate-300">📝 Registro de Movimiento</h4>
+            <button onclick="saveTransaction()" class="bg-emerald-600 hover:bg-emerald-500 text-xs text-white px-4 py-2 rounded-lg font-bold">+ Guardar Movimiento</button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">Tipo</label>
+              <select id="txType" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
+                <option value="gasto">Salida (Gasto)</option>
+                <option value="ingreso">Entrada (Ingreso)</option>
+                <option value="transferencia">Transferencia entre Cuentas</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Importe (€)</label>
+              <input type="number" id="txAmount" placeholder="0.00" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Fecha</label>
+              <input type="date" id="txDate" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Cuenta Origen/Destino</label>
+              <select id="txAccount" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200"></select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Sobre / Subcategoría</label>
+              <select id="txEnvelope" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200"></select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Tercero / Persona / Detalle</label>
+              <input type="text" id="txPayee" placeholder="Ej: Mercadona / Gasolinería" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLA DE HISTÓRICO -->
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+          <h4 class="text-sm font-bold text-slate-300 mb-3">Histórico de Transacciones</h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-900 text-slate-400 uppercase">
+                <tr>
+                  <th class="p-2">Fecha</th>
+                  <th class="p-2">Tipo</th>
+                  <th class="p-2">Cuenta</th>
+                  <th class="p-2">Sobre</th>
+                  <th class="p-2">Tercero</th>
+                  <th class="p-2 text-right">Importe</th>
+                  <th class="p-2 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="txTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 3: DEUDAS Y PRÉSTAMOS -->
+      <div id="tab-debts" class="hidden space-y-6">
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+          <h4 class="text-sm font-bold text-slate-300 mb-4">💳 Seguimiento de Préstamos y Cuotas</h4>
+          <p class="text-xs text-slate-400 mb-4">Gestiona la recepción de capitales prestados y la asignación mensual de las cuotas de devolución.</p>
+          <div id="debtsContainer" class="space-y-4"></div>
+        </div>
+      </div>
+
+    </section>
+  </div>
+
+  <script>
+    // CREDENCIALES FIJAS Y PIN DE SEGURIDAD
+    const USERS = {
+      andy: { name: "Andy", pin: "1234" },
+      mujer: { name: "Mi Mujer", pin: "5678" }
+    };
+
+    // BASE DE DATOS LOCAL
+    let currentUser = null;
+    let currentPlan = 'comun'; // 'comun' o 'personal'
+    let db = {
+      comun: { accounts: [], envelopes: [], transactions: [], debts: [] },
+      personal_andy: { accounts: [], envelopes: [], transactions: [], debts: [] },
+      personal_mujer: { accounts: [], envelopes: [], transactions: [], debts: [] }
+    };
+
+    // INICIALIZACIÓN DE ESTRUCTURA POR DEFECTO
+    function initDefaultData() {
+      db.comun.accounts = [
+        { id: 'c1', name: 'Cuenta Banco 1', balance: 2500 },
+        { id: 'c2', name: 'Cuenta Banco 2', balance: 1200 },
+        { id: 'c3', name: 'Metálico Compartido', balance: 150 }
+      ];
+      db.comun.envelopes = [
+        { id: 'e1', name: 'Supermercado', assigned: 400, spent: 180, goal: 500 },
+        { id: 'e2', name: 'Gasolina', assigned: 150, spent: 60, goal: 200 },
+        { id: 'e3', name: 'Cenas & Ocio', assigned: 200, spent: 120, goal: 250 }
+      ];
+      db.comun.debts = [
+        { id: 'd1', name: 'Préstamo Reforma / Coche', totalAmount: 10000, monthlyPayment: 600, remainingBalance: 8400 }
+      ];
+
+      db.personal_andy.accounts = [
+        { id: 'pa1', name: 'Mi Banco Personal', balance: 800 },
+        { id: 'pa2', name: 'Mi Efectivo', balance: 60 }
+      ];
+      db.personal_andy.envelopes = [
+        { id: 'pe1', name: 'Mis Caprichos / Hobbies', assigned: 100, spent: 30, goal: 150 }
+      ];
+
+      db.personal_mujer.accounts = [
+        { id: 'pm1', name: 'Banco Personal (Ella)', balance: 950 },
+        { id: 'pm2', name: 'Efectivo (Ella)', balance: 80 }
+      ];
+      db.personal_mujer.envelopes = [
+        { id: 'pme1', name: 'Caprichos (Ella)', assigned: 120, spent: 40, goal: 150 }
+      ];
+    }
+
+    function login() {
+      const userKey = document.getElementById('userSelect').value;
+      const pin = document.getElementById('pinInput').value;
+
+      if (USERS[userKey] && USERS[userKey].pin === pin) {
+        currentUser = userKey;
+        document.getElementById('authScreen').classList.add('hidden');
+        document.getElementById('appScreen').classList.remove('hidden');
+        document.getElementById('currentUserBadge').innerText = USERS[userKey].name;
+        
+        initDefaultData();
+        render();
+      } else {
+        document.getElementById('authError').classList.remove('hidden');
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById('appScreen').classList.add('hidden');
+      document.getElementById('authScreen').classList.remove('hidden');
+      document.getElementById('pinInput').value = '';
+    }
+
+    function getActiveKey() {
+      if (currentPlan === 'comun') return 'comun';
+      return currentUser === 'andy' ? 'personal_andy' : 'personal_mujer';
+    }
+
+    function switchPlan(plan) {
+      currentPlan = plan;
+      document.getElementById('planComunBtn').className = plan === 'comun' 
+        ? 'px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white' 
+        : 'px-3 py-1.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200';
+      document.getElementById('planPersonalBtn').className = plan === 'personal' 
+        ? 'px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white' 
+        : 'px-3 py-1.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200';
+      render();
+    }
+
+    function render() {
+      const data = db[getActiveKey()];
+
+      // CÁLCULO DE READY TO ASSIGN (RTA)
+      const totalBankMoney = data.accounts.reduce((sum, a) => sum + a.balance, 0);
+      const totalAssignedMoney = data.envelopes.reduce((sum, e) => sum + e.assigned, 0);
+      const readyToAssign = totalBankMoney - totalAssignedMoney;
+
+      const rtaBanner = document.getElementById('rtaBanner');
+      const rtaAmount = document.getElementById('rtaAmount');
+      const rtaMessage = document.getElementById('rtaMessage');
+
+      rtaAmount.innerText = readyToAssign.toFixed(2) + ' €';
+
+      if (readyToAssign === 0) {
+        rtaBanner.className = "bg-slate-800 border border-emerald-500 rounded-2xl p-6 mb-6 shadow-xl text-center text-emerald-400";
+        rtaMessage.innerText = "¡Perfecto! Todo tu dinero tiene un trabajo asignado (Presupuesto Base Cero).";
+      } else if (readyToAssign > 0) {
+        rtaBanner.className = "bg-slate-800 border border-blue-500 rounded-2xl p-6 mb-6 shadow-xl text-center text-blue-400";
+        rtaMessage.innerText = "Tienes fondos pendientes por repartir entre tus sobres.";
+      } else {
+        rtaBanner.className = "bg-slate-800 border border-red-500 rounded-2xl p-6 mb-6 shadow-xl text-center text-red-400";
+        rtaMessage.innerText = "¡Atención! Has asignado más dinero del que tienes disponible en tus cuentas.";
+      }
+
+      // RENDER CUENTAS
+      document.getElementById('totalAccountsBalance').innerText = totalBankMoney.toFixed(2) + ' €';
+      const accountsGrid = document.getElementById('accountsGrid');
+      accountsGrid.innerHTML = data.accounts.map(a => `
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
+          <span class="text-slate-400 text-xs block">${a.name}</span>
+          <span class="text-base font-bold text-slate-100">${a.balance.toFixed(2)} €</span>
+        </div>
+      `).join('');
+
+      // RENDER SOBRES
+      const envContainer = document.getElementById('envelopesContainer');
+      envContainer.innerHTML = data.envelopes.map(e => {
+        const available = e.assigned - e.spent;
+        const pct = e.goal ? Math.min(100, Math.round((e.spent / e.goal) * 100)) : 0;
+        return `
+          <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-slate-200">${e.name}</span>
+              <span class="text-xs font-bold ${available >= 0 ? 'text-emerald-400' : 'text-red-400'}">
+                Disponible: ${available.toFixed(2)} €
+              </span>
+            </div>
+            <div class="flex justify-between text-xs text-slate-400">
+              <span>Asignado: ${e.assigned.toFixed(2)} €</span>
+              <span>Gastado: ${e.spent.toFixed(2)} €</span>
+              ${e.goal ? `<span>Objetivo: ${e.goal.toFixed(2)} €</span>` : ''}
+            </div>
+            ${e.goal ? `
+              <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                <div class="bg-emerald-500 h-2 rounded-full" style="width: ${pct}%"></div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      // SELECTS PARA FORMULARIO
+      const txAccount = document.getElementById('txAccount');
+      txAccount.innerHTML = data.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+      const txEnvelope = document.getElementById('txEnvelope');
+      txEnvelope.innerHTML = data.envelopes.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+
+      // DEUDAS
+      const debtsContainer = document.getElementById('debtsContainer');
+      debtsContainer.innerHTML = data.debts.map(d => `
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
+          <div>
+            <h5 class="font-bold text-slate-200">${d.name}</h5>
+            <p class="text-xs text-slate-400">Cuota mensual: ${d.monthlyPayment.toFixed(2)} €/mes</p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-slate-400">Pendiente</span>
+            <div class="text-lg font-bold text-red-400">${d.remainingBalance.toFixed(2)} €</div>
+          </div>
+        </div>
+      `).join('');
+
+      renderChart();
+    }
+
+    function renderChart() {
+      const ctx = document.getElementById('budgetChart').getContext('2d');
+      if (window.myChart) window.myChart.destroy();
+      
+      const data = db[getActiveKey()];
+      window.myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.envelopes.map(e => e.name),
+          datasets: [
+            { label: 'Asignado (€)', data: data.envelopes.map(e => e.assigned), backgroundColor: '#059669' },
+            { label: 'Gastado (€)', data: data.envelopes.map(e => e.spent), backgroundColor: '#dc2626' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#cbd5e1' } } },
+          scales: {
+            x: { ticks: { color: '#94a3b8' } },
+            y: { ticks: { color: '#94a3b8' } }
+          }
+        }
+      });
+    }
+
+    function showTab(tab) {
+      ['dashboard', 'transactions', 'debts'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+      });
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
+⚙️ 2. Código del Backend (Code.gs en Google Apps Script)
+Crea un script en tu Google Drive vinculado a vuestra hoja de cálculo y pega este código:
+// GOOGLE APPS SCRIPT PARA PRESUPUESTO FAMILIAR YNAB
+const PINS = {
+  andy: "1234",
+  mujer: "5678"
+};
+
+function doPost(e) {
+  try {
+    const request = JSON.parse(e.postData.contents);
+    const user = request.user;
+    const pin = request.pin;
+    const workspace = request.workspace; // 'comun', 'personal_andy', 'personal_mujer'
+
+    // VALIDACIÓN DE SEGURIDAD
+    if (!PINS[user] || PINS[user] !== pin) {
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "PIN no válido" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // BLOQUEO PRIVADO
+    if (user === 'andy' && workspace === 'personal_mujer') {
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Acceso denegado a datos privados." }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    if (user === 'mujer' && workspace === 'personal_andy') {
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Acceso denegado a datos privados." }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(workspace.toUpperCase());
+    if (!sheet) {
+      sheet = ss.insertSheet(workspace.toUpperCase());
+      sheet.appendRow(["Fecha", "Tipo", "Cuenta", "Sobre", "Tercero", "Importe"]);
+    }
+
+    if (request.action === "saveTransaction") {
+      const tx = request.transaction;
+      sheet.appendRow([tx.date, tx.type, tx.account, tx.envelope, tx.payee, tx.amount]);
+      return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
