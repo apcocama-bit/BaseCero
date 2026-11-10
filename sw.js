@@ -2,8 +2,8 @@ const CACHE_NAME = 'ynab-pwa-v2';
 const ASSETS = [
   './index.html',
   './manifest.json',
-  '[suspicious link removed]',
-  '[suspicious link removed]'
+  'https://cdn.tailwindcss.com',
+  'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
 self.addEventListener('install', (e) => {
