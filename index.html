@@ -4,135 +4,129 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Presupuesto Sobres YNAB</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
   <script src="[suspicious link removed]"></script>
   <script src="[suspicious link removed]"></script>
-  <link rel="manifest" href="data:application/manifest+json,{
-    %22name%22:%22Presupuesto%20YNAB%22,
-    %22short_name%22:%22YNAB%20Sobres%22,
-    %22start_url%22:%22.%22,
-    %22display%22:%22standalone%22,
-    %22background_color%22:%22#0f172a%22,
-    %22theme_color%22:%22#0f172a%22
-  }">
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen pb-12 font-sans">
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-16 font-sans">
 
-  <!-- PANTALLA DE AUTENTICACIÓN / SELECCIÓN DE USUARIO -->
+  <!-- PANTALLA DE ACCESO Y AUTENTICACIÓN -->
   <div id="authScreen" class="flex flex-col items-center justify-center min-h-screen p-4">
     <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl w-full max-w-md text-center">
-      <div class="text-4xl mb-4">✉️</div>
-      <h1 class="text-2xl font-bold mb-2 text-emerald-400">Presupuesto Familiar YNAB</h1>
-      <p class="text-slate-400 text-sm mb-6">Selecciona tu usuario e introduce tu PIN personal</p>
+      <div class="text-5xl mb-4">✉️</div>
+      <h1 class="text-2xl font-black text-emerald-400 mb-1">Presupuesto YNAB</h1>
+      <p class="text-slate-400 text-xs mb-6">Selecciona usuario e introduce tu PIN privado</p>
       
-      <div class="space-y-4 mb-6">
-        <label class="block text-left text-xs font-semibold text-slate-400 uppercase">Usuario</label>
-        <select id="userSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-emerald-500">
-          <option value="andy">Andy (Tú)</option>
-          <option value="mujer">Mi Mujer</option>
-        </select>
+      <div class="space-y-4 mb-6 text-left">
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Usuario</label>
+          <select id="userSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 font-semibold focus:outline-none focus:border-emerald-500">
+            <option value="andy">Andy (Tú)</option>
+            <option value="mujer">Mi Mujer</option>
+          </select>
+        </div>
 
-        <label class="block text-left text-xs font-semibold text-slate-400 uppercase">PIN de Seguridad (4 Dígitos)</label>
-        <input type="password" id="pinInput" placeholder="****" maxlength="4" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-center text-2xl tracking-widest text-emerald-400 focus:outline-none focus:border-emerald-500">
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">PIN Secreto (4 Dígitos)</label>
+          <input type="password" id="pinInput" placeholder="****" maxlength="4" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-center text-2xl tracking-widest text-emerald-400 font-bold focus:outline-none focus:border-emerald-500">
+        </div>
       </div>
 
-      <button onclick="login()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-lg">
-        Iniciar Sesión
+      <button onclick="login()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg text-sm">
+        Acceder al Presupuesto
       </button>
       
       <p id="authError" class="text-red-400 text-xs mt-3 hidden">PIN incorrecto para el usuario seleccionado.</p>
     </div>
   </div>
 
-  <!-- APLICACIÓN PRINCIPAL (OCULTA POR DEFECTO) -->
+  <!-- CONTENEDOR PRINCIPAL -->
   <div id="appScreen" class="hidden">
     
-    <!-- BARRA SUPERIOR CON NAVEGACIÓN Y SELECTOR DE PLAN -->
-    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 px-4 py-3 shadow-md">
+    <!-- CABECERA DE CONTROL -->
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-40 px-4 py-3 shadow-md">
       <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center space-x-2">
           <span class="text-2xl">✉️</span>
           <div>
-            <h2 class="font-bold text-slate-100 leading-tight">Presupuesto YNAB</h2>
-            <span id="currentUserBadge" class="text-xs text-emerald-400 font-medium"></span>
+            <h2 class="font-bold text-slate-100 text-sm leading-tight">Presupuesto YNAB</h2>
+            <span id="currentUserBadge" class="text-xs text-emerald-400 font-semibold"></span>
           </div>
         </div>
 
-        <!-- SELECTOR DE PLAN / ENTORNO -->
-        <div class="flex items-center space-x-2 bg-slate-900 p-1 rounded-xl border border-slate-700">
+        <!-- SELECTOR DE PLAN -->
+        <div class="flex items-center space-x-1 bg-slate-900 p-1 rounded-xl border border-slate-700">
           <button id="planComunBtn" onclick="switchPlan('comun')" class="px-3 py-1.5 text-xs font-bold rounded-lg transition">🏠 Plan Común</button>
           <button id="planPersonalBtn" onclick="switchPlan('personal')" class="px-3 py-1.5 text-xs font-bold rounded-lg transition">🔒 Mi Plan Privado</button>
         </div>
 
-        <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-xs underline">Cerrar Sesión</button>
+        <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-xs font-semibold">Salir 🚪</button>
       </div>
     </header>
 
-    <!-- POZO CENTRAL: LISTO PARA ASIGNAR (READY TO ASSIGN) -->
+    <!-- POZO CENTRAL: LISTO PARA ASIGNAR -->
     <section class="max-w-5xl mx-auto p-4">
-      <div id="rtaBanner" class="bg-slate-800 border rounded-2xl p-6 mb-6 shadow-xl text-center transition-all">
-        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Pozo Central de Fondos</span>
-        <h3 class="text-sm font-bold text-slate-300 mt-1">Listo para Asignar (Ready to Assign)</h3>
-        <div id="rtaAmount" class="text-4xl font-black my-2">0,00 €</div>
-        <p id="rtaMessage" class="text-xs text-slate-400"></p>
+      <div id="rtaBanner" class="bg-slate-800 border rounded-2xl p-5 mb-6 shadow-xl text-center transition-all">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Presupuesto Base Cero</span>
+        <h3 class="text-sm font-semibold text-slate-300 mt-0.5">Listo para Asignar (Ready to Assign)</h3>
+        <div id="rtaAmount" class="text-4xl font-black my-1">0,00 €</div>
+        <p id="rtaMessage" class="text-xs font-medium"></p>
       </div>
 
-      <!-- SECCIÓN DE NAVEGACIÓN POR PESTAÑAS -->
+      <!-- NAVEGACIÓN -->
       <div class="flex border-b border-slate-700 mb-6 space-x-4">
-        <button onclick="showTab('dashboard')" class="tab-btn font-bold text-sm pb-2 border-b-2 border-emerald-500 text-emerald-400">📊 Dashboard & Sobres</button>
-        <button onclick="showTab('transactions')" class="tab-btn font-bold text-sm pb-2 text-slate-400 hover:text-slate-200">📝 Movimientos</button>
-        <button onclick="showTab('debts')" class="tab-btn font-bold text-sm pb-2 text-slate-400 hover:text-slate-200">💳 Deudas & Préstamos</button>
+        <button onclick="showTab('dashboard')" id="tabBtn-dashboard" class="tab-btn font-bold text-sm pb-2 border-b-2 border-emerald-500 text-emerald-400">📊 Sobres y Cuentas</button>
+        <button onclick="showTab('transactions')" id="tabBtn-transactions" class="tab-btn font-bold text-sm pb-2 text-slate-400 hover:text-slate-200">📝 Transacciones</button>
+        <button onclick="showTab('debts')" id="tabBtn-debts" class="tab-btn font-bold text-sm pb-2 text-slate-400 hover:text-slate-200">💳 Deudas & Préstamos</button>
       </div>
 
-      <!-- PESTAÑA 1: DASHBOARD Y SOBRES -->
+      <!-- PESTAÑA 1: SOBRES Y CUENTAS -->
       <div id="tab-dashboard" class="space-y-6">
         
-        <!-- RESUMEN DE CUENTAS / FONDOS -->
-        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
-          <h4 class="text-sm font-bold text-slate-300 mb-3 flex justify-between items-center">
-            <span>🏛️ Saldos en Cuentas y Efectivo</span>
-            <span id="totalAccountsBalance" class="text-emerald-400 font-extrabold"></span>
-          </h4>
+        <!-- SALDOS EN CUENTAS -->
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
+          <div class="flex justify-between items-center mb-3">
+            <h4 class="text-sm font-bold text-slate-300 flex items-center gap-2">
+              <span>🏛️ Cuentas y Efectivo</span>
+              <span id="totalAccountsBalance" class="text-emerald-400 font-extrabold text-sm"></span>
+            </h4>
+            <button onclick="openAccountModal()" class="bg-slate-700 hover:bg-slate-600 text-xs text-slate-200 px-3 py-1 rounded-lg font-bold">+ Cuenta</button>
+          </div>
           <div id="accountsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
         </div>
 
-        <!-- SISTEMA DE SOBRES / CATEGORÍAS -->
-        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+        <!-- SOBRES Y CATEGORÍAS -->
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
           <div class="flex justify-between items-center mb-4">
-            <h4 class="text-sm font-bold text-slate-300">✉️ Sobres y Categorías</h4>
+            <h4 class="text-sm font-bold text-slate-300">✉️ Sobres de Gasto</h4>
             <div class="space-x-2">
               <button onclick="openMoveMoneyModal()" class="bg-slate-700 hover:bg-slate-600 text-xs text-emerald-300 px-3 py-1.5 rounded-lg font-bold">🔄 Reajustar Sobres</button>
-              <button onclick="openNewEnvelopeModal()" class="bg-emerald-600 hover:bg-emerald-500 text-xs text-white px-3 py-1.5 rounded-lg font-bold">+ Nuevo Sobre</button>
+              <button onclick="openEnvelopeModal()" class="bg-emerald-600 hover:bg-emerald-500 text-xs text-white px-3 py-1.5 rounded-lg font-bold">+ Nuevo Sobre</button>
             </div>
           </div>
-
-          <div id="envelopesContainer" class="space-y-4"></div>
+          <div id="envelopesContainer" class="space-y-3"></div>
         </div>
 
-        <!-- GRÁFICAS Y ANALÍTICA -->
-        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
-          <h4 class="text-sm font-bold text-slate-300 mb-4">📈 Comparativa Entradas vs. Salidas</h4>
+        <!-- GRÁFICO -->
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
+          <h4 class="text-sm font-bold text-slate-300 mb-4">📈 Estado del Presupuesto por Sobre</h4>
           <div class="h-64">
             <canvas id="budgetChart"></canvas>
           </div>
         </div>
-
       </div>
 
-      <!-- PESTAÑA 2: MOVIMIENTOS -->
+      <!-- PESTAÑA 2: TRANSACCIONES -->
       <div id="tab-transactions" class="hidden space-y-6">
-        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
-          <div class="flex justify-between items-center mb-4">
-            <h4 class="text-sm font-bold text-slate-300">📝 Registro de Movimiento</h4>
-            <button onclick="saveTransaction()" class="bg-emerald-600 hover:bg-emerald-500 text-xs text-white px-4 py-2 rounded-lg font-bold">+ Guardar Movimiento</button>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
+          <h4 class="text-sm font-bold text-slate-300 mb-3">📝 Nueva Transacción</h4>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs mb-3">
             <div>
               <label class="block text-slate-400 mb-1">Tipo</label>
               <select id="txType" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
                 <option value="gasto">Salida (Gasto)</option>
                 <option value="ingreso">Entrada (Ingreso)</option>
-                <option value="transferencia">Transferencia entre Cuentas</option>
               </select>
             </div>
             <div>
@@ -144,23 +138,24 @@
               <input type="date" id="txDate" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
             </div>
             <div>
-              <label class="block text-slate-400 mb-1">Cuenta Origen/Destino</label>
+              <label class="block text-slate-400 mb-1">Cuenta</label>
               <select id="txAccount" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200"></select>
             </div>
             <div>
-              <label class="block text-slate-400 mb-1">Sobre / Subcategoría</label>
+              <label class="block text-slate-400 mb-1">Sobre Asignado</label>
               <select id="txEnvelope" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200"></select>
             </div>
             <div>
-              <label class="block text-slate-400 mb-1">Tercero / Persona / Detalle</label>
-              <input type="text" id="txPayee" placeholder="Ej: Mercadona / Gasolinería" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
+              <label class="block text-slate-400 mb-1">Tercero / Establecimiento</label>
+              <input type="text" id="txPayee" placeholder="Ej: Mercadona / Gasolinera" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
             </div>
           </div>
+          <button onclick="saveTransaction()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-xs text-white font-bold py-2.5 rounded-lg transition">Registrar Movimiento</button>
         </div>
 
-        <!-- TABLA DE HISTÓRICO -->
-        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
-          <h4 class="text-sm font-bold text-slate-300 mb-3">Histórico de Transacciones</h4>
+        <!-- HISTÓRICO DE MOVIMIENTOS -->
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
+          <h4 class="text-sm font-bold text-slate-300 mb-3">Histórico Cronológico</h4>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs text-slate-300">
               <thead class="bg-slate-900 text-slate-400 uppercase">
@@ -171,10 +166,10 @@
                   <th class="p-2">Sobre</th>
                   <th class="p-2">Tercero</th>
                   <th class="p-2 text-right">Importe</th>
-                  <th class="p-2 text-center">Acciones</th>
+                  <th class="p-2 text-center">Acción</th>
                 </tr>
               </thead>
-              <tbody id="txTableBody"></tbody>
+              <tbody id="txTableBody" class="divide-y divide-slate-700"></tbody>
             </table>
           </div>
         </div>
@@ -182,33 +177,142 @@
 
       <!-- PESTAÑA 3: DEUDAS Y PRÉSTAMOS -->
       <div id="tab-debts" class="hidden space-y-6">
-        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
-          <h4 class="text-sm font-bold text-slate-300 mb-4">💳 Seguimiento de Préstamos y Cuotas</h4>
-          <p class="text-xs text-slate-400 mb-4">Gestiona la recepción de capitales prestados y la asignación mensual de las cuotas de devolución.</p>
-          <div id="debtsContainer" class="space-y-4"></div>
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-sm font-bold text-slate-300">💳 Control de Deudas y Préstamos</h4>
+            <button onclick="openDebtModal()" class="bg-emerald-600 hover:bg-emerald-500 text-xs text-white px-3 py-1.5 rounded-lg font-bold">+ Nuevo Préstamo</button>
+          </div>
+          <div id="debtsContainer" class="space-y-3"></div>
         </div>
       </div>
 
     </section>
   </div>
 
+  <!-- MODAL: CREAR / EDITAR SOBRE -->
+  <div id="envelopeModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
+      <h3 id="envModalTitle" class="text-base font-bold text-emerald-400">Editar Sobre</h3>
+      <input type="hidden" id="envModalId">
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Nombre del Sobre</label>
+        <input type="text" id="envModalName" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Dinero Asignado (€)</label>
+        <input type="number" id="envModalAssigned" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Objetivo Mensual / Goal (€)</label>
+        <input type="number" id="envModalGoal" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+      </div>
+      <div class="flex space-x-2 pt-2">
+        <button onclick="saveEnvelope()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">Guardar</button>
+        <button onclick="closeModal('envelopeModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold py-2.5 rounded-lg text-slate-300">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CREAR / EDITAR CUENTA -->
+  <div id="accountModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
+      <h3 id="accModalTitle" class="text-base font-bold text-emerald-400">Gestión de Cuenta</h3>
+      <input type="hidden" id="accModalId">
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Nombre de la Cuenta / Fondo</label>
+        <input type="text" id="accModalName" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Saldo Actual (€)</label>
+        <input type="number" id="accModalBalance" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+      </div>
+      <div class="flex space-x-2 pt-2">
+        <button onclick="saveAccount()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">Guardar</button>
+        <button onclick="closeModal('accountModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold py-2.5 rounded-lg text-slate-300">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REAJUSTE ENTRE SOBRES (ROLL WITH THE PUNCHES) -->
+  <div id="moveMoneyModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
+      <h3 class="text-base font-bold text-emerald-400">🔄 Reajustar Sobres</h3>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Desde el Sobre (Origen)</label>
+        <select id="moveFromEnv" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200"></select>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Hacia el Sobre (Destino)</label>
+        <select id="moveToEnv" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200"></select>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Importe a Mover (€)</label>
+        <input type="number" id="moveAmount" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+      </div>
+      <div class="flex space-x-2 pt-2">
+        <button onclick="executeMoveMoney()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">Transferir Fondos</button>
+        <button onclick="closeModal('moveMoneyModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold py-2.5 rounded-lg text-slate-300">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CREAR / EDITAR DEUDA -->
+  <div id="debtModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
+      <h3 id="debtModalTitle" class="text-base font-bold text-emerald-400">Añadir Préstamo</h3>
+      <input type="hidden" id="debtModalId">
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Concepto / Nombre del Préstamo</label>
+        <input type="text" id="debtModalName" placeholder="Ej: Préstamo Coche" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Capital Pendiente Total (€)</label>
+        <input type="number" id="debtModalBalance" step="0.01" placeholder="10000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Cuota Mensual (€)</label>
+        <input type="number" id="debtModalPayment" step="0.01" placeholder="600" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
+      </div>
+      <div class="flex space-x-2 pt-2">
+        <button onclick="saveDebt()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">Guardar</button>
+        <button onclick="closeModal('debtModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold py-2.5 rounded-lg text-slate-300">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // CREDENCIALES FIJAS Y PIN DE SEGURIDAD
+    // REGISTRO DE SERVICE WORKERS PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg error', err));
+    }
+
     const USERS = {
       andy: { name: "Andy", pin: "1234" },
       mujer: { name: "Mi Mujer", pin: "5678" }
     };
 
-    // BASE DE DATOS LOCAL
     let currentUser = null;
-    let currentPlan = 'comun'; // 'comun' o 'personal'
+    let currentPlan = 'comun';
     let db = {
       comun: { accounts: [], envelopes: [], transactions: [], debts: [] },
       personal_andy: { accounts: [], envelopes: [], transactions: [], debts: [] },
       personal_mujer: { accounts: [], envelopes: [], transactions: [], debts: [] }
     };
 
-    // INICIALIZACIÓN DE ESTRUCTURA POR DEFECTO
+    function loadDatabase() {
+      const saved = localStorage.getItem('ynab_budget_db_v2');
+      if (saved) {
+        db = JSON.parse(saved);
+      } else {
+        initDefaultData();
+        saveDatabase();
+      }
+    }
+
+    function saveDatabase() {
+      localStorage.setItem('ynab_budget_db_v2', JSON.stringify(db));
+    }
+
     function initDefaultData() {
       db.comun.accounts = [
         { id: 'c1', name: 'Cuenta Banco 1', balance: 2500 },
@@ -229,7 +333,7 @@
         { id: 'pa2', name: 'Mi Efectivo', balance: 60 }
       ];
       db.personal_andy.envelopes = [
-        { id: 'pe1', name: 'Mis Caprichos / Hobbies', assigned: 100, spent: 30, goal: 150 }
+        { id: 'pe1', name: 'Caprichos Andy', assigned: 100, spent: 30, goal: 150 }
       ];
 
       db.personal_mujer.accounts = [
@@ -237,7 +341,7 @@
         { id: 'pm2', name: 'Efectivo (Ella)', balance: 80 }
       ];
       db.personal_mujer.envelopes = [
-        { id: 'pme1', name: 'Caprichos (Ella)', assigned: 120, spent: 40, goal: 150 }
+        { id: 'pme1', name: 'Caprichos Ella', assigned: 120, spent: 40, goal: 150 }
       ];
     }
 
@@ -250,8 +354,8 @@
         document.getElementById('authScreen').classList.add('hidden');
         document.getElementById('appScreen').classList.remove('hidden');
         document.getElementById('currentUserBadge').innerText = USERS[userKey].name;
-        
-        initDefaultData();
+        document.getElementById('txDate').valueAsDate = new Date();
+        loadDatabase();
         render();
       } else {
         document.getElementById('authError').classList.remove('hidden');
@@ -284,9 +388,8 @@
     function render() {
       const data = db[getActiveKey()];
 
-      // CÁLCULO DE READY TO ASSIGN (RTA)
-      const totalBankMoney = data.accounts.reduce((sum, a) => sum + a.balance, 0);
-      const totalAssignedMoney = data.envelopes.reduce((sum, e) => sum + e.assigned, 0);
+      const totalBankMoney = data.accounts.reduce((sum, a) => sum + Number(a.balance), 0);
+      const totalAssignedMoney = data.envelopes.reduce((sum, e) => sum + Number(e.assigned), 0);
       const readyToAssign = totalBankMoney - totalAssignedMoney;
 
       const rtaBanner = document.getElementById('rtaBanner');
@@ -296,43 +399,53 @@
       rtaAmount.innerText = readyToAssign.toFixed(2) + ' €';
 
       if (readyToAssign === 0) {
-        rtaBanner.className = "bg-slate-800 border border-emerald-500 rounded-2xl p-6 mb-6 shadow-xl text-center text-emerald-400";
-        rtaMessage.innerText = "¡Perfecto! Todo tu dinero tiene un trabajo asignado (Presupuesto Base Cero).";
+        rtaBanner.className = "bg-slate-800 border border-emerald-500 rounded-2xl p-5 mb-6 shadow-xl text-center text-emerald-400";
+        rtaMessage.innerText = "¡Perfecto! Presupuesto Base Cero alcanzado.";
       } else if (readyToAssign > 0) {
-        rtaBanner.className = "bg-slate-800 border border-blue-500 rounded-2xl p-6 mb-6 shadow-xl text-center text-blue-400";
-        rtaMessage.innerText = "Tienes fondos pendientes por repartir entre tus sobres.";
+        rtaBanner.className = "bg-slate-800 border border-blue-500 rounded-2xl p-5 mb-6 shadow-xl text-center text-blue-400";
+        rtaMessage.innerText = "Fondos pendientes por asignar a sobres.";
       } else {
-        rtaBanner.className = "bg-slate-800 border border-red-500 rounded-2xl p-6 mb-6 shadow-xl text-center text-red-400";
-        rtaMessage.innerText = "¡Atención! Has asignado más dinero del que tienes disponible en tus cuentas.";
+        rtaBanner.className = "bg-slate-800 border border-red-500 rounded-2xl p-5 mb-6 shadow-xl text-center text-red-400";
+        rtaMessage.innerText = "¡Atención! Has asignado más dinero del disponible en tus cuentas.";
       }
 
-      // RENDER CUENTAS
+      // CUENTAS
       document.getElementById('totalAccountsBalance').innerText = totalBankMoney.toFixed(2) + ' €';
       const accountsGrid = document.getElementById('accountsGrid');
       accountsGrid.innerHTML = data.accounts.map(a => `
-        <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
-          <span class="text-slate-400 text-xs block">${a.name}</span>
-          <span class="text-base font-bold text-slate-100">${a.balance.toFixed(2)} €</span>
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
+          <div>
+            <span class="text-slate-400 text-xs block font-semibold">${a.name}</span>
+            <span class="text-base font-bold text-slate-100">${Number(a.balance).toFixed(2)} €</span>
+          </div>
+          <div class="space-x-1">
+            <button onclick="openAccountModal('${a.id}')" class="text-slate-400 hover:text-emerald-400 text-xs p-1">✏️</button>
+            <button onclick="deleteAccount('${a.id}')" class="text-slate-400 hover:text-red-400 text-xs p-1">🗑️</button>
+          </div>
         </div>
       `).join('');
 
-      // RENDER SOBRES
+      // SOBRES
       const envContainer = document.getElementById('envelopesContainer');
       envContainer.innerHTML = data.envelopes.map(e => {
-        const available = e.assigned - e.spent;
-        const pct = e.goal ? Math.min(100, Math.round((e.spent / e.goal) * 100)) : 0;
+        const available = Number(e.assigned) - Number(e.spent);
+        const pct = e.goal ? Math.min(100, Math.round((Number(e.spent) / Number(e.goal)) * 100)) : 0;
         return `
           <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-2">
             <div class="flex justify-between items-center">
-              <span class="font-bold text-slate-200">${e.name}</span>
-              <span class="text-xs font-bold ${available >= 0 ? 'text-emerald-400' : 'text-red-400'}">
-                Disponible: ${available.toFixed(2)} €
-              </span>
+              <span class="font-bold text-slate-200 text-sm">${e.name}</span>
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold ${available >= 0 ? 'text-emerald-400' : 'text-red-400'}">
+                  Disponible: ${available.toFixed(2)} €
+                </span>
+                <button onclick="openEnvelopeModal('${e.id}')" class="text-slate-400 hover:text-emerald-400 text-xs">✏️</button>
+                <button onclick="deleteEnvelope('${e.id}')" class="text-slate-400 hover:text-red-400 text-xs">🗑️</button>
+              </div>
             </div>
             <div class="flex justify-between text-xs text-slate-400">
-              <span>Asignado: ${e.assigned.toFixed(2)} €</span>
-              <span>Gastado: ${e.spent.toFixed(2)} €</span>
-              ${e.goal ? `<span>Objetivo: ${e.goal.toFixed(2)} €</span>` : ''}
+              <span>Asignado: ${Number(e.assigned).toFixed(2)} €</span>
+              <span>Gastado: ${Number(e.spent).toFixed(2)} €</span>
+              ${e.goal ? `<span>Objetivo: ${Number(e.goal).toFixed(2)} €</span>` : ''}
             </div>
             ${e.goal ? `
               <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
@@ -343,7 +456,7 @@
         `;
       }).join('');
 
-      // SELECTS PARA FORMULARIO
+      // SELECTS FORMULARIO TRANSACCIONES
       const txAccount = document.getElementById('txAccount');
       txAccount.innerHTML = data.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
       const txEnvelope = document.getElementById('txEnvelope');
@@ -354,17 +467,263 @@
       debtsContainer.innerHTML = data.debts.map(d => `
         <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
           <div>
-            <h5 class="font-bold text-slate-200">${d.name}</h5>
-            <p class="text-xs text-slate-400">Cuota mensual: ${d.monthlyPayment.toFixed(2)} €/mes</p>
+            <h5 class="font-bold text-slate-200 text-sm">${d.name}</h5>
+            <p class="text-xs text-slate-400">Cuota mensual: ${Number(d.monthlyPayment).toFixed(2)} €/mes</p>
           </div>
-          <div class="text-right">
-            <span class="text-xs text-slate-400">Pendiente</span>
-            <div class="text-lg font-bold text-red-400">${d.remainingBalance.toFixed(2)} €</div>
+          <div class="flex items-center space-x-3 text-right">
+            <div>
+              <span class="text-xs text-slate-400 block">Pendiente</span>
+              <div class="text-base font-bold text-red-400">${Number(d.remainingBalance).toFixed(2)} €</div>
+            </div>
+            <button onclick="deleteDebt('${d.id}')" class="text-slate-400 hover:text-red-400 text-xs">🗑️</button>
           </div>
         </div>
       `).join('');
 
+      // TABLA HISTÓRICO
+      const tbody = document.getElementById('txTableBody');
+      tbody.innerHTML = data.transactions.map(t => {
+        const acc = data.accounts.find(a => a.id === t.account);
+        const env = data.envelopes.find(e => e.id === t.envelope);
+        return `
+          <tr class="hover:bg-slate-800/50">
+            <td class="p-2">${t.date}</td>
+            <td class="p-2 font-semibold ${t.type === 'ingreso' ? 'text-emerald-400' : 'text-red-400'}">${t.type.toUpperCase()}</td>
+            <td class="p-2">${acc ? acc.name : '-'}</td>
+            <td class="p-2">${env ? env.name : '-'}</td>
+            <td class="p-2">${t.payee || '-'}</td>
+            <td class="p-2 text-right font-bold ${t.type === 'ingreso' ? 'text-emerald-400' : 'text-slate-200'}">${Number(t.amount).toFixed(2)} €</td>
+            <td class="p-2 text-center">
+              <button onclick="deleteTransaction('${t.id}')" class="text-red-400 hover:text-red-300">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
       renderChart();
+    }
+
+    // CRUD SOBRES
+    function openEnvelopeModal(id = null) {
+      const data = db[getActiveKey()];
+      document.getElementById('envModalId').value = id || '';
+      if (id) {
+        const env = data.envelopes.find(e => e.id === id);
+        document.getElementById('envModalTitle').innerText = "Editar Sobre";
+        document.getElementById('envModalName').value = env.name;
+        document.getElementById('envModalAssigned').value = env.assigned;
+        document.getElementById('envModalGoal').value = env.goal || '';
+      } else {
+        document.getElementById('envModalTitle').innerText = "Nuevo Sobre";
+        document.getElementById('envModalName').value = '';
+        document.getElementById('envModalAssigned').value = '0';
+        document.getElementById('envModalGoal').value = '';
+      }
+      document.getElementById('envelopeModal').classList.remove('hidden');
+    }
+
+    function saveEnvelope() {
+      const data = db[getActiveKey()];
+      const id = document.getElementById('envModalId').value;
+      const name = document.getElementById('envModalName').value.trim();
+      const assigned = Number(document.getElementById('envModalAssigned').value) || 0;
+      const goal = Number(document.getElementById('envModalGoal').value) || 0;
+
+      if (!name) return alert("Introduce un nombre para el sobre.");
+
+      if (id) {
+        const env = data.envelopes.find(e => e.id === id);
+        env.name = name;
+        env.assigned = assigned;
+        env.goal = goal;
+      } else {
+        data.envelopes.push({ id: 'e_' + Date.now(), name, assigned, spent: 0, goal });
+      }
+
+      saveDatabase();
+      closeModal('envelopeModal');
+      render();
+    }
+
+    function deleteEnvelope(id) {
+      if (!confirm("¿Seguro que deseas eliminar este sobre?")) return;
+      const data = db[getActiveKey()];
+      data.envelopes = data.envelopes.filter(e => e.id !== id);
+      saveDatabase();
+      render();
+    }
+
+    // CRUD CUENTAS
+    function openAccountModal(id = null) {
+      const data = db[getActiveKey()];
+      document.getElementById('accModalId').value = id || '';
+      if (id) {
+        const acc = data.accounts.find(a => a.id === id);
+        document.getElementById('accModalTitle').innerText = "Editar Cuenta";
+        document.getElementById('accModalName').value = acc.name;
+        document.getElementById('accModalBalance').value = acc.balance;
+      } else {
+        document.getElementById('accModalTitle').innerText = "Nueva Cuenta";
+        document.getElementById('accModalName').value = '';
+        document.getElementById('accModalBalance').value = '0';
+      }
+      document.getElementById('accountModal').classList.remove('hidden');
+    }
+
+    function saveAccount() {
+      const data = db[getActiveKey()];
+      const id = document.getElementById('accModalId').value;
+      const name = document.getElementById('accModalName').value.trim();
+      const balance = Number(document.getElementById('accModalBalance').value) || 0;
+
+      if (!name) return alert("Introduce el nombre de la cuenta.");
+
+      if (id) {
+        const acc = data.accounts.find(a => a.id === id);
+        acc.name = name;
+        acc.balance = balance;
+      } else {
+        data.accounts.push({ id: 'c_' + Date.now(), name, balance });
+      }
+
+      saveDatabase();
+      closeModal('accountModal');
+      render();
+    }
+
+    function deleteAccount(id) {
+      if (!confirm("¿Eliminar esta cuenta?")) return;
+      const data = db[getActiveKey()];
+      data.accounts = data.accounts.filter(a => a.id !== id);
+      saveDatabase();
+      render();
+    }
+
+    // REAJUSTE DE SOBRES (ROLL WITH THE PUNCHES)
+    function openMoveMoneyModal() {
+      const data = db[getActiveKey()];
+      const fromSel = document.getElementById('moveFromEnv');
+      const toSel = document.getElementById('moveToEnv');
+      const opts = data.envelopes.map(e => `<option value="${e.id}">${e.name} (Disp: ${(e.assigned - e.spent).toFixed(2)}€)</option>`).join('');
+      fromSel.innerHTML = opts;
+      toSel.innerHTML = opts;
+      document.getElementById('moveMoneyModal').classList.remove('hidden');
+    }
+
+    function executeMoveMoney() {
+      const data = db[getActiveKey()];
+      const fromId = document.getElementById('moveFromEnv').value;
+      const toId = document.getElementById('moveToEnv').value;
+      const amount = Number(document.getElementById('moveAmount').value);
+
+      if (fromId === toId) return alert("Selecciona dos sobres distintos.");
+      if (!amount || amount <= 0) return alert("Introduce un importe válido.");
+
+      const fromEnv = data.envelopes.find(e => e.id === fromId);
+      const toEnv = data.envelopes.find(e => e.id === toId);
+
+      fromEnv.assigned -= amount;
+      toEnv.assigned += amount;
+
+      saveDatabase();
+      closeModal('moveMoneyModal');
+      render();
+    }
+
+    // CRUD DEUDAS
+    function openDebtModal() {
+      document.getElementById('debtModalName').value = '';
+      document.getElementById('debtModalBalance').value = '';
+      document.getElementById('debtModalPayment').value = '';
+      document.getElementById('debtModal').classList.remove('hidden');
+    }
+
+    function saveDebt() {
+      const data = db[getActiveKey()];
+      const name = document.getElementById('debtModalName').value.trim();
+      const totalAmount = Number(document.getElementById('debtModalBalance').value) || 0;
+      const monthlyPayment = Number(document.getElementById('debtModalPayment').value) || 0;
+
+      if (!name) return alert("Introduce un concepto.");
+
+      data.debts.push({
+        id: 'd_' + Date.now(),
+        name,
+        totalAmount,
+        monthlyPayment,
+        remainingBalance: totalAmount
+      });
+
+      saveDatabase();
+      closeModal('debtModal');
+      render();
+    }
+
+    function deleteDebt(id) {
+      if (!confirm("¿Eliminar este préstamo del seguimiento?")) return;
+      const data = db[getActiveKey()];
+      data.debts = data.debts.filter(d => d.id !== id);
+      saveDatabase();
+      render();
+    }
+
+    // TRANSACCIONES
+    function saveTransaction() {
+      const data = db[getActiveKey()];
+      const type = document.getElementById('txType').value;
+      const amount = Number(document.getElementById('txAmount').value);
+      const date = document.getElementById('txDate').value;
+      const accountId = document.getElementById('txAccount').value;
+      const envelopeId = document.getElementById('txEnvelope').value;
+      const payee = document.getElementById('txPayee').value;
+
+      if (!amount || amount <= 0 || !date) return alert("Introduce importe y fecha.");
+
+      const acc = data.accounts.find(a => a.id === accountId);
+      const env = data.envelopes.find(e => e.id === envelopeId);
+
+      if (type === 'gasto') {
+        if (acc) acc.balance -= amount;
+        if (env) env.spent += amount;
+      } else if (type === 'ingreso') {
+        if (acc) acc.balance += amount;
+      }
+
+      data.transactions.unshift({
+        id: 'tx_' + Date.now(),
+        type,
+        amount,
+        date,
+        account: accountId,
+        envelope: envelopeId,
+        payee
+      });
+
+      saveDatabase();
+      document.getElementById('txAmount').value = '';
+      document.getElementById('txPayee').value = '';
+      render();
+    }
+
+    function deleteTransaction(id) {
+      if (!confirm("¿Eliminar esta transacción?")) return;
+      const data = db[getActiveKey()];
+      const tx = data.transactions.find(t => t.id === id);
+      if (!tx) return;
+
+      const acc = data.accounts.find(a => a.id === tx.account);
+      const env = data.envelopes.find(e => e.id === tx.envelope);
+
+      if (tx.type === 'gasto') {
+        if (acc) acc.balance += tx.amount;
+        if (env) env.spent -= tx.amount;
+      } else if (tx.type === 'ingreso') {
+        if (acc) acc.balance -= tx.amount;
+      }
+
+      data.transactions = data.transactions.filter(t => t.id !== id);
+      saveDatabase();
+      render();
     }
 
     function renderChart() {
@@ -396,59 +755,15 @@
     function showTab(tab) {
       ['dashboard', 'transactions', 'debts'].forEach(t => {
         document.getElementById(`tab-${t}`).classList.add('hidden');
+        document.getElementById(`tabBtn-${t}`).className = "tab-btn font-bold text-sm pb-2 text-slate-400 hover:text-slate-200";
       });
       document.getElementById(`tab-${tab}`).classList.remove('hidden');
+      document.getElementById(`tabBtn-${tab}`).className = "tab-btn font-bold text-sm pb-2 border-b-2 border-emerald-500 text-emerald-400";
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
     }
   </script>
 </body>
 </html>
-⚙️ 2. Código del Backend (Code.gs en Google Apps Script)
-Crea un script en tu Google Drive vinculado a vuestra hoja de cálculo y pega este código:
-// GOOGLE APPS SCRIPT PARA PRESUPUESTO FAMILIAR YNAB
-const PINS = {
-  andy: "1234",
-  mujer: "5678"
-};
-
-function doPost(e) {
-  try {
-    const request = JSON.parse(e.postData.contents);
-    const user = request.user;
-    const pin = request.pin;
-    const workspace = request.workspace; // 'comun', 'personal_andy', 'personal_mujer'
-
-    // VALIDACIÓN DE SEGURIDAD
-    if (!PINS[user] || PINS[user] !== pin) {
-      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "PIN no válido" }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // BLOQUEO PRIVADO
-    if (user === 'andy' && workspace === 'personal_mujer') {
-      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Acceso denegado a datos privados." }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    if (user === 'mujer' && workspace === 'personal_andy') {
-      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Acceso denegado a datos privados." }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName(workspace.toUpperCase());
-    if (!sheet) {
-      sheet = ss.insertSheet(workspace.toUpperCase());
-      sheet.appendRow(["Fecha", "Tipo", "Cuenta", "Sobre", "Tercero", "Importe"]);
-    }
-
-    if (request.action === "saveTransaction") {
-      const tx = request.transaction;
-      sheet.appendRow([tx.date, tx.type, tx.account, tx.envelope, tx.payee, tx.amount]);
-      return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
