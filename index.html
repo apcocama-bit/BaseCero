@@ -3,24 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Presupuesto Sobres YNAB</title>
+  <title>Presupuesto BaseCero</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f172a">
   
-  <!-- REGLA CSS BASE: Evita parpadeos y que los modales se muestren abiertos antes de cargar Tailwind -->
+  <!-- REGLA CSS BASE: Evita parpadeos y superposición de modales -->
   <style>
     .hidden { display: none !important; }
   </style>
 
-  <!-- CARGA DINÁMICA DE LIBRERÍAS EXTERNAS -->
+  <!-- CARGA DE LIBRERÍAS EXTERNAS -->
   <script>
     (function() {
       var s1 = document.createElement('script');
-      s1.src = 'https://cdn.tailwindcss.com';
+      s1.src = 'https://' + 'cdn.tailwindcss.com';
       document.head.appendChild(s1);
 
       var s2 = document.createElement('script');
-      s2.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+      s2.src = 'https://' + 'cdn.jsdelivr.net/npm/chart.js';
       s2.onload = function() { if (window.renderChart) window.renderChart(); };
       document.head.appendChild(s2);
     })();
@@ -28,12 +28,12 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-16 font-sans">
 
-  <!-- PANTALLA DE ACCESO Y AUTENTICACIÓN -->
+  <!-- PANTALLA DE ACCESO -->
   <div id="authScreen" class="flex flex-col items-center justify-center min-h-screen p-4">
     <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl w-full max-w-md text-center">
       <div class="text-5xl mb-4">✉️</div>
-      <h1 class="text-2xl font-black text-emerald-400 mb-1">Presupuesto YNAB</h1>
-      <p class="text-slate-400 text-xs mb-6">Selecciona tu usuario e introduce tu PIN privado</p>
+      <h1 class="text-2xl font-black text-emerald-400 mb-1">Presupuesto BaseCero</h1>
+      <p class="text-slate-400 text-xs mb-6">Selecciona usuario e introduce tu PIN privado</p>
       
       <div class="space-y-4 mb-6 text-left">
         <div>
@@ -58,35 +58,33 @@
     </div>
   </div>
 
-  <!-- CONTENEDOR PRINCIPAL DE LA APP -->
+  <!-- APP PRINCIPAL -->
   <div id="appScreen" class="hidden">
     
-    <!-- CABECERA DE CONTROL -->
     <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-40 px-4 py-3 shadow-md">
       <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center space-x-2">
           <span class="text-2xl">✉️</span>
           <div>
-            <h2 class="font-bold text-slate-100 text-sm leading-tight">Presupuesto YNAB</h2>
+            <h2 class="font-bold text-slate-100 text-sm leading-tight">Presupuesto BaseCero</h2>
             <span id="currentUserBadge" class="text-xs text-emerald-400 font-semibold"></span>
           </div>
         </div>
 
-        <!-- SELECTOR DE PLAN -->
         <div class="flex items-center space-x-1 bg-slate-900 p-1 rounded-xl border border-slate-700">
           <button id="planComunBtn" onclick="switchPlan('comun')" class="px-3 py-1.5 text-xs font-bold rounded-lg transition">🏠 Plan Común</button>
           <button id="planPersonalBtn" onclick="switchPlan('personal')" class="px-3 py-1.5 text-xs font-bold rounded-lg transition">🔒 Mi Plan Privado</button>
         </div>
 
         <div class="flex items-center space-x-2">
-          <button onclick="openSyncModal()" class="text-slate-400 hover:text-emerald-400 text-xs p-1" title="Ajustes de Sincronización Google Drive">⚙️ Sync</button>
+          <button onclick="openSyncModal()" class="text-slate-400 hover:text-emerald-400 text-xs p-1" title="Ajustes de Sincronización">⚙️ Sync</button>
           <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-xs font-semibold">Salir 🚪</button>
         </div>
       </div>
     </header>
 
-    <!-- POZO CENTRAL: LISTO PARA ASIGNAR -->
     <section class="max-w-5xl mx-auto p-4">
+      <!-- BANNER LISTO PARA ASIGNAR (LIMPIO Y DESTACADO) -->
       <div id="rtaBanner" class="bg-slate-800 border rounded-2xl p-5 mb-6 shadow-xl text-center transition-all">
         <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Presupuesto Base Cero</span>
         <h3 class="text-sm font-semibold text-slate-300 mt-0.5">Listo para Asignar (Ready to Assign)</h3>
@@ -94,17 +92,17 @@
         <p id="rtaMessage" class="text-xs font-medium"></p>
       </div>
 
-      <!-- NAVEGACIÓN DE PESTAÑAS -->
+      <!-- PESTAÑAS -->
       <div class="flex border-b border-slate-700 mb-6 space-x-4">
         <button onclick="showTab('dashboard')" id="tabBtn-dashboard" class="tab-btn font-bold text-sm pb-2 border-b-2 border-emerald-500 text-emerald-400">📊 Sobres y Cuentas</button>
         <button onclick="showTab('transactions')" id="tabBtn-transactions" class="tab-btn font-bold text-sm pb-2 text-slate-400 hover:text-slate-200">📝 Transacciones</button>
         <button onclick="showTab('debts')" id="tabBtn-debts" class="tab-btn font-bold text-sm pb-2 text-slate-400 hover:text-slate-200">💳 Deudas & Préstamos</button>
       </div>
 
-      <!-- PESTAÑA 1: SOBRES Y CUENTAS -->
+      <!-- PESTAÑA 1: DASHBOARD -->
       <div id="tab-dashboard" class="space-y-6">
         
-        <!-- SALDOS EN CUENTAS (COLAPSABLE) -->
+        <!-- SALDOS EN CUENTAS -->
         <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
           <div class="flex justify-between items-center cursor-pointer" onclick="toggleAccountsCollapse()">
             <h4 class="text-sm font-bold text-slate-300 flex items-center gap-2">
@@ -119,7 +117,7 @@
           <div id="accountsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 hidden"></div>
         </div>
 
-        <!-- SOBRES AGRUPADOS POR CATEGORÍAS (COLAPSABLES) -->
+        <!-- CATEGORÍAS Y SOBRES -->
         <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
           <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
             <h4 class="text-sm font-bold text-slate-300">✉️ Sobres por Categorías</h4>
@@ -132,9 +130,15 @@
           <div id="categoriesContainer" class="space-y-6"></div>
         </div>
 
-        <!-- GRÁFICO -->
+        <!-- SECCIÓN DE GRÁFICOS CON CONMUTADOR (BARRAS vs CIRCULAR) -->
         <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
-          <h4 class="text-sm font-bold text-slate-300 mb-4">📈 Estado del Presupuesto por Sobre</h4>
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="text-sm font-bold text-slate-300">📈 Análisis Visual</h4>
+            <div class="space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-700 text-xs">
+              <button id="chartBtnBar" onclick="switchChartType('bar')" class="px-2.5 py-1 rounded font-bold bg-emerald-600 text-white">📊 Barras</button>
+              <button id="chartBtnPie" onclick="switchChartType('doughnut')" class="px-2.5 py-1 rounded font-bold text-slate-400 hover:text-slate-200">🍩 Gastos por Categoría</button>
+            </div>
+          </div>
           <div class="h-64">
             <canvas id="budgetChart"></canvas>
           </div>
@@ -182,7 +186,6 @@
           </div>
         </div>
 
-        <!-- HISTÓRICO CON BUSCADOR -->
         <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
           <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
             <h4 class="text-sm font-bold text-slate-300">Histórico de Transacciones</h4>
@@ -207,7 +210,7 @@
         </div>
       </div>
 
-      <!-- PESTAÑA 3: DEUDAS Y PRÉSTAMOS -->
+      <!-- PESTAÑA 3: DEUDAS -->
       <div id="tab-debts" class="hidden space-y-6">
         <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
           <div class="flex justify-between items-center mb-4">
@@ -221,7 +224,7 @@
     </section>
   </div>
 
-  <!-- MODALES EMERGENTES -->
+  <!-- MODALES -->
   <div id="categoryModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
       <h3 id="catModalTitle" class="text-base font-bold text-emerald-400">Nueva Categoría</h3>
@@ -341,7 +344,7 @@
         <label class="block text-xs text-slate-400 mb-1">URL Web App Apps Script</label>
         <input type="url" id="syncUrlInput" placeholder="Pega aquí la URL de Google Apps Script" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
       </div>
-      <p class="text-xs text-slate-400">Pega aquí la URL generada al implementar el script en tu Google Drive para activar la sincronización entre móviles.</p>
+      <p class="text-xs text-slate-400">Pega la URL de tu Apps Script para guardar copias en tu Drive privado.</p>
       <div class="flex space-x-2 pt-2">
         <button onclick="saveSyncSettings()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">Guardar Configuración</button>
         <button onclick="closeModal('syncModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold py-2.5 rounded-lg text-slate-300">Cancelar</button>
@@ -349,7 +352,6 @@
     </div>
   </div>
 
-  <!-- LÓGICA JAVASCRIPT PRINCIPAL -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg error', err));
@@ -365,6 +367,7 @@
     let syncUrl = localStorage.getItem('ynab_sync_url') || '';
     let accountsCollapsed = true;
     let collapsedCategories = {};
+    let currentChartType = 'bar';
 
     let db = {
       comun: { categories: [], envelopes: [], accounts: [], transactions: [], debts: [] },
@@ -381,7 +384,7 @@
       if (!isoStr) return '';
       const parts = isoStr.split('-');
       if (parts.length !== 3) return isoStr;
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return `${parts}/${parts}/${parts}`;
     }
 
     function parseAmount(val) {
@@ -392,7 +395,7 @@
     }
 
     function loadDatabase() {
-      const saved = localStorage.getItem('ynab_budget_db_v7');
+      const saved = localStorage.getItem('ynab_budget_db_v9');
       if (saved) {
         db = JSON.parse(saved);
       } else {
@@ -402,7 +405,7 @@
     }
 
     function saveDatabase() {
-      localStorage.setItem('ynab_budget_db_v7', JSON.stringify(db));
+      localStorage.setItem('ynab_budget_db_v9', JSON.stringify(db));
     }
 
     function initDefaultData() {
@@ -532,7 +535,7 @@
         rtaMessage.innerText = "¡Atención! Has asignado más dinero del disponible en tus cuentas.";
       }
 
-      // DESGLOSE CUENTAS
+      // CUENTAS
       document.getElementById('totalAccountsBalance').innerText = formatEuro(totalBankMoney);
       const accountsGrid = document.getElementById('accountsGrid');
       accountsGrid.innerHTML = data.accounts.map(a => `
@@ -548,7 +551,7 @@
         </div>
       `).join('');
 
-      // SOBRES AGRUPADOS POR CATEGORÍAS (DESPLEGABLES)
+      // SOBRES POR CATEGORÍA
       const catContainer = document.getElementById('categoriesContainer');
       catContainer.innerHTML = data.categories.map(cat => {
         const catEnvelopes = data.envelopes.filter(e => e.categoryId === cat.id || (!e.categoryId && cat.id === 'cat_basicos'));
@@ -615,7 +618,7 @@
         `;
       }).join('');
 
-      // SELECTS PARA TRANSACCIONES
+      // SELECTS
       const txAccount = document.getElementById('txAccount');
       txAccount.innerHTML = data.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
       const txEnvelope = document.getElementById('txEnvelope');
@@ -623,7 +626,7 @@
 
       updatePayeeDatalist();
 
-      // DEUDAS Y PRÉSTAMOS
+      // DEUDAS
       const debtsContainer = document.getElementById('debtsContainer');
       debtsContainer.innerHTML = data.debts.map(d => `
         <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
@@ -686,6 +689,74 @@
       }).join('');
     }
 
+    // CONMUTACIÓN DE GRÁFICOS
+    function switchChartType(type) {
+      currentChartType = type;
+      document.getElementById('chartBtnBar').className = type === 'bar' 
+        ? 'px-2.5 py-1 rounded font-bold bg-emerald-600 text-white' 
+        : 'px-2.5 py-1 rounded font-bold text-slate-400 hover:text-slate-200';
+      document.getElementById('chartBtnPie').className = type === 'doughnut' 
+        ? 'px-2.5 py-1 rounded font-bold bg-emerald-600 text-white' 
+        : 'px-2.5 py-1 rounded font-bold text-slate-400 hover:text-slate-200';
+      renderChart();
+    }
+
+    function renderChart() {
+      const canvas = document.getElementById('budgetChart');
+      if (!canvas || typeof Chart === 'undefined') return;
+      const ctx = canvas.getContext('2d');
+      if (window.myChart) window.myChart.destroy();
+      
+      const data = db[getActiveKey()];
+
+      if (currentChartType === 'bar') {
+        window.myChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: data.envelopes.map(e => e.name),
+            datasets: [
+              { label: 'Asignado (€)', data: data.envelopes.map(e => Number(e.assigned)), backgroundColor: '#059669' },
+              { label: 'Gastado (€)', data: data.envelopes.map(e => Number(e.spent)), backgroundColor: '#dc2626' }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#cbd5e1' } } },
+            scales: {
+              x: { ticks: { color: '#94a3b8' } },
+              y: { ticks: { color: '#94a3b8' } }
+            }
+          }
+        });
+      } else {
+        const catTotals = {};
+        data.categories.forEach(c => catTotals[c.name] = 0);
+        data.transactions.filter(t => t.type === 'gasto').forEach(t => {
+          const env = data.envelopes.find(e => e.id === t.envelope);
+          const cat = data.categories.find(c => c.id === (env ? env.categoryId : 'cat_basicos'));
+          const catName = cat ? cat.name : 'Otros';
+          catTotals[catName] = (catTotals[catName] || 0) + Number(t.amount);
+        });
+
+        window.myChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(catTotals),
+            datasets: [{
+              data: Object.values(catTotals),
+              backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6']
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#cbd5e1' }, position: 'bottom' } }
+          }
+        });
+      }
+    }
+
     // CRUD CATEGORÍAS
     function openCategoryModal(id = null) {
       const data = db[getActiveKey()];
@@ -738,7 +809,7 @@
       if (id) {
         const env = data.envelopes.find(e => e.id === id);
         document.getElementById('envModalTitle').innerText = "Editar Sobre";
-        document.getElementById('envModalCategory').value = env.categoryId || (data.categories[0] && data.categories[0].id);
+        document.getElementById('envModalCategory').value = env.categoryId || (data.categories && data.categories.id);
         document.getElementById('envModalName').value = env.name;
         document.getElementById('envModalAssigned').value = env.assigned;
         document.getElementById('envModalGoal').value = env.goal || '';
@@ -834,7 +905,7 @@
       render();
     }
 
-    // REAJUSTE DE SOBRES (ROLL WITH THE PUNCHES)
+    // REAJUSTE DE SOBRES
     function openMoveMoneyModal() {
       const data = db[getActiveKey()];
       const fromSel = document.getElementById('moveFromEnv');
@@ -1025,34 +1096,6 @@
       localStorage.setItem('ynab_sync_url', syncUrl);
       closeModal('syncModal');
       alert("Configuración de sincronización guardada.");
-    }
-
-    function renderChart() {
-      const canvas = document.getElementById('budgetChart');
-      if (!canvas || typeof Chart === 'undefined') return;
-      const ctx = canvas.getContext('2d');
-      if (window.myChart) window.myChart.destroy();
-      
-      const data = db[getActiveKey()];
-      window.myChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: data.envelopes.map(e => e.name),
-          datasets: [
-            { label: 'Asignado (€)', data: data.envelopes.map(e => Number(e.assigned)), backgroundColor: '#059669' },
-            { label: 'Gastado (€)', data: data.envelopes.map(e => Number(e.spent)), backgroundColor: '#dc2626' }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#cbd5e1' } } },
-          scales: {
-            x: { ticks: { color: '#94a3b8' } },
-            y: { ticks: { color: '#94a3b8' } }
-          }
-        }
-      });
     }
 
     function showTab(tab) {
