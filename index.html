@@ -14,11 +14,11 @@
   <script>
     (function() {
       var s1 = document.createElement('script');
-      s1.src = 'https://cdn.tailwindcss.com';
+      s1.src = 'https://' + 'cdn.tailwindcss.com';
       document.head.appendChild(s1);
 
       var s2 = document.createElement('script');
-      s2.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+      s2.src = 'https://' + 'cdn.jsdelivr.net/npm/chart.js';
       s2.onload = function() { if (window.renderChart) window.renderChart(); };
       document.head.appendChild(s2);
     })();
@@ -225,7 +225,7 @@
     </section>
   </div>
 
-  <!-- MODALES DE ASIGNACIÓN Y EDICIÓN -->
+  <!-- MODALES -->
   <div id="quickAssignModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
       <h3 class="text-base font-bold text-emerald-400">⚡ Asignar Fondos Disponibles</h3>
@@ -407,7 +407,7 @@
     </div>
   </div>
 
-  <!-- SCRIPT LÓGICO COMPLETO CON MIGRACIÓN DE DATOS -->
+  <!-- SCRIPT LÓGICO -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg error', err));
@@ -452,16 +452,21 @@
     }
 
     function loadDatabase() {
-      // MIGRACIÓN: Busca en claves anteriores para recuperar los sobres si la v11 está vacía
-      const saved = localStorage.getItem('basecero_budget_db_v11') || 
-                    localStorage.getItem('ynab_budget_db_v10') || 
-                    localStorage.getItem('ynab_budget_db_v9');
-      if (saved) {
-        db = JSON.parse(saved);
+      // Priorizamos recuperar tus sobres anteriores guardados en v10
+      const legacyData = localStorage.getItem('ynab_budget_db_v10') || 
+                         localStorage.getItem('ynab_budget_db_v9');
+
+      if (legacyData) {
+        db = JSON.parse(legacyData);
         localStorage.setItem('basecero_budget_db_v11', JSON.stringify(db));
       } else {
-        initDefaultData();
-        saveDatabase();
+        const saved = localStorage.getItem('basecero_budget_db_v11');
+        if (saved) {
+          db = JSON.parse(saved);
+        } else {
+          initDefaultData();
+          saveDatabase();
+        }
       }
     }
 
