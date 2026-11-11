@@ -395,15 +395,19 @@
         <label class="block text-xs text-slate-400 mb-1">URL Web App Apps Script</label>
         <input type="url" id="syncUrlInput" placeholder="Pega aquí la URL de Google Apps Script" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
       </div>
-      <p class="text-xs text-slate-400">Pega la URL de tu Apps Script para sincronizar automáticamente todo el presupuesto entre dispositivos.</p>
-      <div class="flex space-x-2 pt-2">
-        <button onclick="saveSyncSettings()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">Guardar Configuración</button>
-        <button onclick="closeModal('syncModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold py-2.5 rounded-lg text-slate-300">Cancelar</button>
+      <p class="text-xs text-slate-400">Pega la URL para sincronizar automáticamente todo el presupuesto entre tus dispositivos.</p>
+      
+      <div class="space-y-2 pt-2">
+        <button onclick="fetchFromDrive()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">📥 Descargar datos de Google Drive</button>
+        <div class="flex space-x-2">
+          <button onclick="saveSyncSettings()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold py-2.5 rounded-lg text-slate-200">Guardar URL</button>
+          <button onclick="closeModal('syncModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold py-2.5 rounded-lg text-slate-300">Cerrar</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- SCRIPT LÓGICO COMPLETO -->
+  <!-- SCRIPT LÓGICO COMPLETO CON MIGRACIÓN DE DATOS -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg error', err));
@@ -416,7 +420,7 @@
 
     let currentUser = null;
     let currentPlan = 'comun';
-    let syncUrl = localStorage.getItem('basecero_sync_url') || '';
+    let syncUrl = localStorage.getItem('basecero_sync_url') || localStorage.getItem('ynab_sync_url') || '';
     let accountsCollapsed = true;
     let collapsedCategories = {};
     let currentChartType = 'bar';
@@ -448,16 +452,19 @@
     }
 
     function loadDatabase() {
-      const saved = localStorage.getItem('basecero_budget_db_v11');
+      // MIGRACIÓN: Busca en claves anteriores para recuperar los sobres si la v11 está vacía
+      const saved = localStorage.getItem('basecero_budget_db_v11') || 
+                    localStorage.getItem('ynab_budget_db_v10') || 
+                    localStorage.getItem('ynab_budget_db_v9');
       if (saved) {
         db = JSON.parse(saved);
+        localStorage.setItem('basecero_budget_db_v11', JSON.stringify(db));
       } else {
         initDefaultData();
         saveDatabase();
       }
     }
 
-    // GUARDA EN LOCALSTORAG Y ENVÍA FOTO COMPLETA A GOOGLE SHEETS/DRIVE
     function saveDatabase() {
       localStorage.setItem('basecero_budget_db_v11', JSON.stringify(db));
       
@@ -475,6 +482,29 @@
           })
         }).catch(err => console.log('Error enviando datos a Drive:', err));
       }
+    }
+
+    function fetchFromDrive() {
+      if (!syncUrl) return alert("Pega primero la URL de tu Google Apps Script.");
+      
+      const targetWorkspace = getActiveKey();
+      fetch(`${syncUrl}?workspace=${targetWorkspace}`)
+        .then(res => res.json())
+        .then(response => {
+          if (response.status === 'success' && response.data) {
+            db[targetWorkspace] = response.data;
+            saveDatabase();
+            render();
+            closeModal('syncModal');
+            alert(`¡Datos del plan '${targetWorkspace}' cargados correctamente desde Google Drive!`);
+          } else {
+            alert("No se encontraron datos guardados en Google Drive para esta pestaña.");
+          }
+        })
+        .catch(err => {
+          console.error("Error cargando de Drive:", err);
+          alert("Error de conexión al intentar descargar los datos.");
+        });
     }
 
     function initDefaultData() {
@@ -983,7 +1013,7 @@
       if (id) {
         const env = data.envelopes.find(e => e.id === id);
         document.getElementById('envModalTitle').innerText = "Editar Sobre";
-        document.getElementById('envModalCategory').value = env.categoryId || (data.categories && data.categories[0].id);
+        document.getElementById('envModalCategory').value = env.categoryId || (data.categories && data.categories.id);
         document.getElementById('envModalName').value = env.name;
         document.getElementById('envModalAssigned').value = env.assigned;
         document.getElementById('envModalGoal').value = env.goal || '';
