@@ -7,20 +7,18 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f172a">
   
-  <!-- REGLA CSS BASE: Evita parpadeos y que los modales se muestren abiertos antes de tiempo -->
   <style>
     .hidden { display: none !important; }
   </style>
 
-  <!-- CARGA DE LIBRERÍAS EXTERNAS -->
   <script>
     (function() {
       var s1 = document.createElement('script');
-      s1.src = 'https://' + 'cdn.tailwindcss.com';
+      s1.src = 'https://cdn.tailwindcss.com';
       document.head.appendChild(s1);
 
       var s2 = document.createElement('script');
-      s2.src = 'https://' + 'cdn.jsdelivr.net/npm/chart.js';
+      s2.src = 'https://cdn.jsdelivr.net/npm/chart.js';
       s2.onload = function() { if (window.renderChart) window.renderChart(); };
       document.head.appendChild(s2);
     })();
@@ -84,7 +82,7 @@
     </header>
 
     <section class="max-w-5xl mx-auto p-4">
-      <!-- BANNER LISTO PARA ASIGNAR (CLICABLE PARA ASIGNACIÓN RÁPIDA) -->
+      <!-- BANNER LISTO PARA ASIGNAR -->
       <div id="rtaBanner" onclick="openQuickAssignModal()" class="bg-slate-800 border rounded-2xl p-5 mb-6 shadow-xl text-center transition-all cursor-pointer hover:border-emerald-400 group" title="Haz clic para asignar este dinero a un sobre">
         <span class="text-xs font-bold uppercase tracking-wider text-slate-400 group-hover:text-emerald-300">Presupuesto Base Cero (Haz clic para asignar ⚡)</span>
         <h3 class="text-sm font-semibold text-slate-300 mt-0.5">Listo para Asignar</h3>
@@ -130,7 +128,7 @@
           <div id="categoriesContainer" class="space-y-6"></div>
         </div>
 
-        <!-- SECCIÓN DE GRÁFICOS CON CONMUTADOR Y FILTRO DE SOBRES -->
+        <!-- GRÁFICOS -->
         <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
           <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
             <div class="flex items-center space-x-2">
@@ -227,7 +225,7 @@
     </section>
   </div>
 
-  <!-- MODAL: ASIGNACIÓN RÁPIDA DESDE POZO -->
+  <!-- MODALES DE ASIGNACIÓN Y EDICIÓN -->
   <div id="quickAssignModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
       <h3 class="text-base font-bold text-emerald-400">⚡ Asignar Fondos Disponibles</h3>
@@ -250,7 +248,6 @@
     </div>
   </div>
 
-  <!-- MODAL: SUMAR DIRECTO A SOBRE -->
   <div id="addAssignedModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
       <h3 id="addAssignedTitle" class="text-base font-bold text-emerald-400">➕ Añadir Fondos al Sobre</h3>
@@ -267,7 +264,6 @@
     </div>
   </div>
 
-  <!-- MODAL: FILTRAR SOBRES EN LA GRÁFICA -->
   <div id="chartFilterModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
       <h3 class="text-base font-bold text-emerald-400">⚙️ Filtrar Sobres en la Gráfica</h3>
@@ -280,7 +276,6 @@
     </div>
   </div>
 
-  <!-- OTROS MODALES DE LA APP -->
   <div id="categoryModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
       <h3 id="catModalTitle" class="text-base font-bold text-emerald-400">Nueva Categoría</h3>
@@ -400,7 +395,7 @@
         <label class="block text-xs text-slate-400 mb-1">URL Web App Apps Script</label>
         <input type="url" id="syncUrlInput" placeholder="Pega aquí la URL de Google Apps Script" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
       </div>
-      <p class="text-xs text-slate-400">Pega la URL de tu Apps Script para guardar copias en tu Drive privado.</p>
+      <p class="text-xs text-slate-400">Pega la URL de tu Apps Script para sincronizar automáticamente todo el presupuesto entre dispositivos.</p>
       <div class="flex space-x-2 pt-2">
         <button onclick="saveSyncSettings()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">Guardar Configuración</button>
         <button onclick="closeModal('syncModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold py-2.5 rounded-lg text-slate-300">Cancelar</button>
@@ -408,7 +403,7 @@
     </div>
   </div>
 
-  <!-- LÓGICA JAVASCRIPT PRINCIPAL -->
+  <!-- SCRIPT LÓGICO COMPLETO -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg error', err));
@@ -421,7 +416,7 @@
 
     let currentUser = null;
     let currentPlan = 'comun';
-    let syncUrl = localStorage.getItem('ynab_sync_url') || '';
+    let syncUrl = localStorage.getItem('basecero_sync_url') || '';
     let accountsCollapsed = true;
     let collapsedCategories = {};
     let currentChartType = 'bar';
@@ -453,7 +448,7 @@
     }
 
     function loadDatabase() {
-      const saved = localStorage.getItem('ynab_budget_db_v10');
+      const saved = localStorage.getItem('basecero_budget_db_v11');
       if (saved) {
         db = JSON.parse(saved);
       } else {
@@ -462,8 +457,24 @@
       }
     }
 
+    // GUARDA EN LOCALSTORAG Y ENVÍA FOTO COMPLETA A GOOGLE SHEETS/DRIVE
     function saveDatabase() {
-      localStorage.setItem('ynab_budget_db_v10', JSON.stringify(db));
+      localStorage.setItem('basecero_budget_db_v11', JSON.stringify(db));
+      
+      if (syncUrl && currentUser) {
+        fetch(syncUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user: currentUser,
+            pin: USERS[currentUser].pin,
+            workspace: getActiveKey(),
+            action: 'syncFullDb',
+            payload: db[getActiveKey()]
+          })
+        }).catch(err => console.log('Error enviando datos a Drive:', err));
+      }
     }
 
     function initDefaultData() {
@@ -613,7 +624,7 @@
         </div>
       `).join('');
 
-      // SOBRES POR CATEGORÍA
+      // SOBRES
       const catContainer = document.getElementById('categoriesContainer');
       catContainer.innerHTML = data.categories.map(cat => {
         const catEnvelopes = data.envelopes.filter(e => e.categoryId === cat.id || (!e.categoryId && cat.id === 'cat_basicos'));
@@ -713,7 +724,7 @@
       renderChart();
     }
 
-    // 1️⃣ ASIGNACIÓN RÁPIDA DESDE BANNER
+    // ASIGNACIÓN RÁPIDA
     function openQuickAssignModal() {
       const data = db[getActiveKey()];
       if (data.envelopes.length === 0) return alert("Crea primero algún sobre.");
@@ -747,7 +758,7 @@
       }
     }
 
-    // 2️⃣ SUMA DIRECTA EN SOBRE
+    // SUMA DIRECTA EN SOBRE
     function openAddAssignedModal(envId) {
       const data = db[getActiveKey()];
       const env = data.envelopes.find(e => e.id === envId);
@@ -776,7 +787,7 @@
       }
     }
 
-    // 3️⃣ FILTRAR SOBRES EN LA GRÁFICA
+    // FILTRAR SOBRES EN GRÁFICA
     function openChartFilterModal() {
       const data = db[getActiveKey()];
       const listContainer = document.getElementById('chartFilterList');
@@ -972,7 +983,7 @@
       if (id) {
         const env = data.envelopes.find(e => e.id === id);
         document.getElementById('envModalTitle').innerText = "Editar Sobre";
-        document.getElementById('envModalCategory').value = env.categoryId || (data.categories && data.categories.id);
+        document.getElementById('envModalCategory').value = env.categoryId || (data.categories && data.categories[0].id);
         document.getElementById('envModalName').value = env.name;
         document.getElementById('envModalAssigned').value = env.assigned;
         document.getElementById('envModalGoal').value = env.goal || '';
@@ -1136,7 +1147,7 @@
       render();
     }
 
-    // TRANSACCIONES & SYNC
+    // TRANSACCIONES
     function saveTransaction() {
       const data = db[getActiveKey()];
       const editId = document.getElementById('txEditId').value;
@@ -1182,22 +1193,6 @@
       }
 
       saveDatabase();
-      
-      if (syncUrl) {
-        fetch(syncUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user: currentUser,
-            pin: USERS[currentUser].pin,
-            workspace: getActiveKey(),
-            action: 'saveTransaction',
-            transaction: { type, amount, date, account: acc ? acc.name : accountId, envelope: env ? env.name : envelopeId, payee }
-          })
-        }).catch(err => console.log('Error de sincronización:', err));
-      }
-
       resetTxForm();
       render();
     }
@@ -1256,8 +1251,9 @@
 
     function saveSyncSettings() {
       syncUrl = document.getElementById('syncUrlInput').value.trim();
-      localStorage.setItem('ynab_sync_url', syncUrl);
+      localStorage.setItem('basecero_sync_url', syncUrl);
       closeModal('syncModal');
+      saveDatabase();
       alert("Configuración de sincronización guardada.");
     }
 
