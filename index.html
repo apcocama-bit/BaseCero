@@ -475,59 +475,78 @@
     }
 
     function saveDatabase() {
-      localStorage.setItem('basecero_budget_db_v11', JSON.stringify(db));
-      
-      if (syncUrl && syncUrl !== "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT" && currentUser) {
-        document.getElementById('syncStatusBadge').innerText = '⏳ Guardando...';
-        fetch(syncUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user: currentUser,
-            pin: USERS[currentUser].pin,
-            workspace: getActiveKey(),
-            action: 'syncFullDb',
-            payload: db[getActiveKey()]
-          })
-        })
-        .then(() => {
-          document.getElementById('syncStatusBadge').innerText = '🟢 Sincronizado';
-        })
-        .catch(err => {
-          console.log('Error enviando datos a Drive:', err);
-          document.getElementById('syncStatusBadge').innerText = '⚠️ Error Sync';
-        });
-      }
-    }
+  const activeKey = getActiveKey();
+  if (db[activeKey]) {
+    db[activeKey].lastUpdated = Date.now(); // Marca la hora exacta del cambio
+  }
+  
+  localStorage.setItem('basecero_budget_db_v11', JSON.stringify(db));
+  
+  if (syncUrl && syncUrl !== "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT" && currentUser) {
+    document.getElementById('syncStatusBadge').innerText = '⏳ Guardando...';
+    fetch(syncUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user: currentUser,
+        pin: USERS[currentUser].pin,
+        workspace: activeKey,
+        action: 'syncFullDb',
+        payload: db[activeKey]
+      })
+    })
+    .then(() => {
+      document.getElementById('syncStatusBadge').innerText = '🟢 Sincronizado';
+    })
+    .catch(err => {
+      console.log('Error enviando datos a Drive:', err);
+      document.getElementById('syncStatusBadge').innerText = '⚠️ Error Sync';
+    });
+  }
+}
 
     function autoFetchFromDriveSilently(callback) {
-      if (!syncUrl || syncUrl === "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT") {
-        if (callback) callback();
-        return;
+  if (!syncUrl || syncUrl === "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT") {
+    if (callback) callback();
+    return;
+  }
+
+  document.getElementById('syncStatusBadge').innerText = '🔄 Descargando...';
+  const targetWorkspace = getActiveKey();
+
+  fetch(`${syncUrl}?workspace=${targetWorkspace}`)
+    .then(res => res.json())
+    .then(response => {
+      if (response.status === 'success' && response.data) {
+        const cloudData = response.data;
+        const localData = db[targetWorkspace] || {};
+
+        const localTime = localData.lastUpdated || 0;
+        const cloudTime = cloudData.lastUpdated || 0;
+
+        // La versión con la fecha/hora más reciente es la que manda
+        if (cloudTime > localTime) {
+          db[targetWorkspace] = cloudData;
+          localStorage.setItem('basecero_budget_db_v11', JSON.stringify(db));
+          document.getElementById('syncStatusBadge').innerText = '🟢 Sincronizado';
+        } else if (localTime > cloudTime) {
+          saveDatabase();
+          document.getElementById('syncStatusBadge').innerText = '🟢 Local subido a Nube';
+        } else {
+          document.getElementById('syncStatusBadge').innerText = '🟢 Sincronizado';
+        }
       }
-
-      document.getElementById('syncStatusBadge').innerText = '🔄 Descargando...';
-      const targetWorkspace = getActiveKey();
-
-      fetch(`${syncUrl}?workspace=${targetWorkspace}`)
-        .then(res => res.json())
-        .then(response => {
-          if (response.status === 'success' && response.data) {
-            db[targetWorkspace] = response.data;
-            localStorage.setItem('basecero_budget_db_v11', JSON.stringify(db));
-            document.getElementById('syncStatusBadge').innerText = '🟢 Sincronizado';
-          }
-        })
-        .catch(err => {
-          console.log("Error descargando datos de la nube silencioso:", err);
-          document.getElementById('syncStatusBadge').innerText = '🟡 Modo Local';
-        })
-        .finally(() => {
-          render();
-          if (callback) callback();
-        });
-    }
+    })
+    .catch(err => {
+      console.log("Error descargando datos de la nube:", err);
+      document.getElementById('syncStatusBadge').innerText = '🟡 Modo Local';
+    })
+    .finally(() => {
+      render();
+      if (callback) callback();
+    });
+}
 
     function manualSyncFromDrive() {
       autoFetchFromDriveSilently(() => alert("¡Datos actualizados desde Google Drive!"));
