@@ -14,11 +14,11 @@
   <script>
     (function() {
       var s1 = document.createElement('script');
-      s1.src = 'https://' + 'cdn.tailwindcss.com';
+      s1.src = 'https://cdn.tailwindcss.com';
       document.head.appendChild(s1);
 
       var s2 = document.createElement('script');
-      s2.src = 'https://' + 'cdn.jsdelivr.net/npm/chart.js';
+      s2.src = 'https://cdn.jsdelivr.net/npm/chart.js';
       s2.onload = function() { if (window.renderChart) window.renderChart(); };
       document.head.appendChild(s2);
     })();
@@ -65,7 +65,10 @@
           <span class="text-2xl">✉️</span>
           <div>
             <h2 class="font-bold text-slate-100 text-sm leading-tight">Presupuesto BaseCero</h2>
-            <span id="currentUserBadge" class="text-xs text-emerald-400 font-semibold"></span>
+            <div class="flex items-center gap-2">
+              <span id="currentUserBadge" class="text-xs text-emerald-400 font-semibold"></span>
+              <span id="syncStatusBadge" class="text-[10px] text-slate-400 font-mono">🟢 Conectado</span>
+            </div>
           </div>
         </div>
 
@@ -75,7 +78,7 @@
         </div>
 
         <div class="flex items-center space-x-2">
-          <button onclick="openSyncModal()" class="text-slate-400 hover:text-emerald-400 text-xs p-1" title="Ajustes de Sincronización">⚙️ Sync</button>
+          <button onclick="manualSyncFromDrive()" class="text-slate-400 hover:text-emerald-400 text-xs p-1" title="Forzar Sincronización">🔄 Sync</button>
           <button onclick="logout()" class="text-slate-400 hover:text-slate-200 text-xs font-semibold">Salir 🚪</button>
         </div>
       </div>
@@ -90,16 +93,16 @@
         <p id="rtaMessage" class="text-xs font-medium"></p>
       </div>
 
-      <!-- PESTAÑAS -->
-      <div class="flex border-b border-slate-700 mb-6 space-x-4">
-        <button onclick="showTab('dashboard')" id="tabBtn-dashboard" class="tab-btn font-bold text-sm pb-2 border-b-2 border-emerald-500 text-emerald-400">📊 Sobres y Cuentas</button>
-        <button onclick="showTab('transactions')" id="tabBtn-transactions" class="tab-btn font-bold text-sm pb-2 text-slate-400 hover:text-slate-200">📝 Transacciones</button>
-        <button onclick="showTab('debts')" id="tabBtn-debts" class="tab-btn font-bold text-sm pb-2 text-slate-400 hover:text-slate-200">💳 Deudas & Préstamos</button>
+      <!-- PESTAÑAS PRINCIPALES -->
+      <div class="flex border-b border-slate-700 mb-6 space-x-2 overflow-x-auto pb-1">
+        <button onclick="showTab('dashboard')" id="tabBtn-dashboard" class="tab-btn font-bold text-xs md:text-sm pb-2 border-b-2 border-emerald-500 text-emerald-400 whitespace-nowrap">📊 Sobres y Cuentas</button>
+        <button onclick="showTab('transactions')" id="tabBtn-transactions" class="tab-btn font-bold text-xs md:text-sm pb-2 text-slate-400 hover:text-slate-200 whitespace-nowrap">📝 Transacciones</button>
+        <button onclick="showTab('debts')" id="tabBtn-debts" class="tab-btn font-bold text-xs md:text-sm pb-2 text-slate-400 hover:text-slate-200 whitespace-nowrap">💳 Deudas</button>
+        <button onclick="showTab('shopping')" id="tabBtn-shopping" class="tab-btn font-bold text-xs md:text-sm pb-2 text-slate-400 hover:text-slate-200 whitespace-nowrap">🛒 Lista Compra</button>
       </div>
 
       <!-- PESTAÑA 1: DASHBOARD -->
       <div id="tab-dashboard" class="space-y-6">
-        
         <!-- SALDOS EN CUENTAS -->
         <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
           <div class="flex justify-between items-center cursor-pointer" onclick="toggleAccountsCollapse()">
@@ -219,6 +222,26 @@
             <button onclick="openDebtModal()" class="bg-emerald-600 hover:bg-emerald-500 text-xs text-white px-3 py-1.5 rounded-lg font-bold">+ Nuevo Préstamo</button>
           </div>
           <div id="debtsContainer" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 4: LISTA DE LA COMPRA COMPARTIDA -->
+      <div id="tab-shopping" class="hidden space-y-6">
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
+          <h4 class="text-sm font-bold text-slate-300 mb-1">🛒 Lista de la Compra Compartida</h4>
+          <p class="text-xs text-slate-400 mb-4">Lo que apuntes aquí se sincronizará automáticamente entre ambos móviles.</p>
+          
+          <form onsubmit="event.preventDefault(); addShoppingItem();" class="flex gap-2 mb-4">
+            <input type="text" id="shoppingInput" placeholder="Ej: Leche, Manzanas, Papel de cocina..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 rounded-xl text-xs transition">Añadir ➕</button>
+          </form>
+
+          <div class="flex justify-between items-center mb-3">
+            <span id="shoppingCounter" class="text-xs text-slate-400 font-semibold">0 productos pendientes</span>
+            <button onclick="clearBoughtItems()" class="text-xs text-slate-400 hover:text-red-400 font-semibold transition">Limpiar comprados 🗑️</button>
+          </div>
+
+          <div id="shoppingListContainer" class="space-y-2 max-h-96 overflow-y-auto pr-1"></div>
         </div>
       </div>
 
@@ -388,30 +411,14 @@
     </div>
   </div>
 
-  <div id="syncModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
-      <h3 class="text-base font-bold text-emerald-400">⚙️ Sincronización Google Drive</h3>
-      <div>
-        <label class="block text-xs text-slate-400 mb-1">URL Web App Apps Script</label>
-        <input type="url" id="syncUrlInput" placeholder="Pega aquí la URL de Google Apps Script" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200">
-      </div>
-      <p class="text-xs text-slate-400">Pega la URL para sincronizar automáticamente todo el presupuesto entre tus dispositivos.</p>
-      
-      <div class="space-y-2 pt-2">
-        <button onclick="fetchFromDrive()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-xs font-bold py-2.5 rounded-lg text-white">📥 Descargar datos de Google Drive</button>
-        <div class="flex space-x-2">
-          <button onclick="saveSyncSettings()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold py-2.5 rounded-lg text-slate-200">Guardar URL</button>
-          <button onclick="closeModal('syncModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold py-2.5 rounded-lg text-slate-300">Cerrar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- SCRIPT LÓGICO -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg error', err));
     }
+
+    // ⚠️ PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT UNA SOLA VEZ PARA QUE QUEDE FIJA EN TODOS LOS MÓVILES
+    const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbwSar31q77Y1rk2EQ6jT3lVUS_Yi2NeVdmhB3GYwJiDibpneO-KryRjnwyRGhvMYiWb/exec";
 
     const USERS = {
       andres: { name: "Andres", pin: "1234" },
@@ -420,16 +427,16 @@
 
     let currentUser = null;
     let currentPlan = 'comun';
-    let syncUrl = localStorage.getItem('basecero_sync_url') || localStorage.getItem('ynab_sync_url') || '';
+    let syncUrl = DEFAULT_SYNC_URL;
     let accountsCollapsed = true;
     let collapsedCategories = {};
     let currentChartType = 'bar';
     let currentRtaCalculated = 0;
 
     let db = {
-      comun: { categories: [], envelopes: [], accounts: [], transactions: [], debts: [], chartExcluded: [] },
-      personal_andres: { categories: [], envelopes: [], accounts: [], transactions: [], debts: [], chartExcluded: [] },
-      personal_andrea: { categories: [], envelopes: [], accounts: [], transactions: [], debts: [], chartExcluded: [] }
+      comun: { categories: [], envelopes: [], accounts: [], transactions: [], debts: [], chartExcluded: [], shoppingList: [] },
+      personal_andres: { categories: [], envelopes: [], accounts: [], transactions: [], debts: [], chartExcluded: [], shoppingList: [] },
+      personal_andrea: { categories: [], envelopes: [], accounts: [], transactions: [], debts: [], chartExcluded: [], shoppingList: [] }
     };
 
     function formatEuro(val) {
@@ -452,10 +459,7 @@
     }
 
     function loadDatabase() {
-      // Priorizamos recuperar tus sobres anteriores guardados en v10
-      const legacyData = localStorage.getItem('ynab_budget_db_v10') || 
-                         localStorage.getItem('ynab_budget_db_v9');
-
+      const legacyData = localStorage.getItem('ynab_budget_db_v10') || localStorage.getItem('ynab_budget_db_v9');
       if (legacyData) {
         db = JSON.parse(legacyData);
         localStorage.setItem('basecero_budget_db_v11', JSON.stringify(db));
@@ -473,7 +477,8 @@
     function saveDatabase() {
       localStorage.setItem('basecero_budget_db_v11', JSON.stringify(db));
       
-      if (syncUrl && currentUser) {
+      if (syncUrl && syncUrl !== "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT" && currentUser) {
+        document.getElementById('syncStatusBadge').innerText = '⏳ Guardando...';
         fetch(syncUrl, {
           method: 'POST',
           mode: 'no-cors',
@@ -485,31 +490,47 @@
             action: 'syncFullDb',
             payload: db[getActiveKey()]
           })
-        }).catch(err => console.log('Error enviando datos a Drive:', err));
+        })
+        .then(() => {
+          document.getElementById('syncStatusBadge').innerText = '🟢 Sincronizado';
+        })
+        .catch(err => {
+          console.log('Error enviando datos a Drive:', err);
+          document.getElementById('syncStatusBadge').innerText = '⚠️ Error Sync';
+        });
       }
     }
 
-    function fetchFromDrive() {
-      if (!syncUrl) return alert("Pega primero la URL de tu Google Apps Script.");
-      
+    function autoFetchFromDriveSilently(callback) {
+      if (!syncUrl || syncUrl === "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT") {
+        if (callback) callback();
+        return;
+      }
+
+      document.getElementById('syncStatusBadge').innerText = '🔄 Descargando...';
       const targetWorkspace = getActiveKey();
+
       fetch(`${syncUrl}?workspace=${targetWorkspace}`)
         .then(res => res.json())
         .then(response => {
           if (response.status === 'success' && response.data) {
             db[targetWorkspace] = response.data;
-            saveDatabase();
-            render();
-            closeModal('syncModal');
-            alert(`¡Datos del plan '${targetWorkspace}' cargados correctamente desde Google Drive!`);
-          } else {
-            alert("No se encontraron datos guardados en Google Drive para esta pestaña.");
+            localStorage.setItem('basecero_budget_db_v11', JSON.stringify(db));
+            document.getElementById('syncStatusBadge').innerText = '🟢 Sincronizado';
           }
         })
         .catch(err => {
-          console.error("Error cargando de Drive:", err);
-          alert("Error de conexión al intentar descargar los datos.");
+          console.log("Error descargando datos de la nube silencioso:", err);
+          document.getElementById('syncStatusBadge').innerText = '🟡 Modo Local';
+        })
+        .finally(() => {
+          render();
+          if (callback) callback();
         });
+    }
+
+    function manualSyncFromDrive() {
+      autoFetchFromDriveSilently(() => alert("¡Datos actualizados desde Google Drive!"));
     }
 
     function initDefaultData() {
@@ -534,26 +555,19 @@
       db.comun.debts = [
         { id: 'd1', name: 'Préstamo Reforma / Coche', totalAmount: 10000, monthlyPayment: 600, remainingBalance: 8400 }
       ];
+      db.comun.shoppingList = [];
       db.comun.chartExcluded = [];
 
       db.personal_andres.categories = JSON.parse(JSON.stringify(defaultCats));
-      db.personal_andres.accounts = [
-        { id: 'pa1', name: 'Cuenta Personal Andres', balance: 800 },
-        { id: 'pa2', name: 'Efectivo Andres', balance: 60 }
-      ];
-      db.personal_andres.envelopes = [
-        { id: 'pe1', categoryId: 'cat_extras', name: 'Caprichos Andres', assigned: 100, spent: 30, goal: 150 }
-      ];
+      db.personal_andres.accounts = [{ id: 'pa1', name: 'Cuenta Personal Andres', balance: 800 }];
+      db.personal_andres.envelopes = [{ id: 'pe1', categoryId: 'cat_extras', name: 'Caprichos Andres', assigned: 100, spent: 30, goal: 150 }];
+      db.personal_andres.shoppingList = [];
       db.personal_andres.chartExcluded = [];
 
       db.personal_andrea.categories = JSON.parse(JSON.stringify(defaultCats));
-      db.personal_andrea.accounts = [
-        { id: 'pm1', name: 'Cuenta Personal Andrea', balance: 950 },
-        { id: 'pm2', name: 'Efectivo Andrea', balance: 80 }
-      ];
-      db.personal_andrea.envelopes = [
-        { id: 'pme1', categoryId: 'cat_extras', name: 'Caprichos Andrea', assigned: 120, spent: 40, goal: 150 }
-      ];
+      db.personal_andrea.accounts = [{ id: 'pm1', name: 'Cuenta Personal Andrea', balance: 950 }];
+      db.personal_andrea.envelopes = [{ id: 'pme1', categoryId: 'cat_extras', name: 'Caprichos Andrea', assigned: 120, spent: 40, goal: 150 }];
+      db.personal_andrea.shoppingList = [];
       db.personal_andrea.chartExcluded = [];
     }
 
@@ -568,7 +582,7 @@
         document.getElementById('currentUserBadge').innerText = USERS[userKey].name;
         document.getElementById('txDate').valueAsDate = new Date();
         loadDatabase();
-        render();
+        autoFetchFromDriveSilently();
       } else {
         document.getElementById('authError').classList.remove('hidden');
       }
@@ -594,7 +608,8 @@
       document.getElementById('planPersonalBtn').className = plan === 'personal' 
         ? 'px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 text-white' 
         : 'px-3 py-1.5 text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200';
-      render();
+      
+      autoFetchFromDriveSilently();
     }
 
     function toggleAccountsCollapse() {
@@ -613,13 +628,12 @@
 
     function render() {
       const data = db[getActiveKey()];
-      if (!data.categories || data.categories.length === 0) {
-        data.categories = [
-          { id: 'cat_basicos', name: 'Básicos & Fijos' },
-          { id: 'cat_extras', name: 'Extras & Ocio' },
-          { id: 'cat_ahorros', name: 'Ahorro & Objetivos' }
-        ];
-      }
+      if (!data.categories) data.categories = [];
+      if (!data.envelopes) data.envelopes = [];
+      if (!data.accounts) data.accounts = [];
+      if (!data.transactions) data.transactions = [];
+      if (!data.debts) data.debts = [];
+      if (!data.shoppingList) data.shoppingList = [];
       if (!data.chartExcluded) data.chartExcluded = [];
 
       const totalBankMoney = data.accounts.reduce((sum, a) => sum + Number(a.balance), 0);
@@ -756,7 +770,71 @@
       `).join('');
 
       renderTransactionsTable();
+      renderShoppingList();
       renderChart();
+    }
+
+    // LÓGICA DE LA LISTA DE LA COMPRA COMPARTIDA
+    function renderShoppingList() {
+      const data = db[getActiveKey()];
+      const list = data.shoppingList || [];
+      const container = document.getElementById('shoppingListContainer');
+      const counter = document.getElementById('shoppingCounter');
+
+      const pendingCount = list.filter(item => !item.done).length;
+      counter.innerText = `${pendingCount} producto${pendingCount === 1 ? '' : 's'} pendiente${pendingCount === 1 ? '' : 's'}`;
+
+      if (list.length === 0) {
+        container.innerHTML = '<p class="text-xs text-slate-500 italic text-center py-6">La lista de la compra está vacía. ¡Añade lo que necesites!</p>';
+        return;
+      }
+
+      container.innerHTML = list.map(item => `
+        <div class="flex items-center justify-between bg-slate-900 p-3 rounded-xl border border-slate-700/80 ${item.done ? 'opacity-50' : ''}">
+          <label class="flex items-center space-x-3 cursor-pointer flex-1 mr-2">
+            <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleShoppingItem('${item.id}')" class="w-5 h-5 accent-emerald-500 rounded cursor-pointer">
+            <span class="text-xs font-semibold ${item.done ? 'line-through text-slate-500' : 'text-slate-200'}">${item.text}</span>
+          </label>
+          <button onclick="deleteShoppingItem('${item.id}')" class="text-slate-500 hover:text-red-400 text-xs p-1" title="Borrar producto">🗑️</button>
+        </div>
+      `).join('');
+    }
+
+    function addShoppingItem() {
+      const data = db[getActiveKey()];
+      const input = document.getElementById('shoppingInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      if (!data.shoppingList) data.shoppingList = [];
+      data.shoppingList.push({ id: 'shop_' + Date.now(), text, done: false });
+      input.value = '';
+      saveDatabase();
+      renderShoppingList();
+    }
+
+    function toggleShoppingItem(id) {
+      const data = db[getActiveKey()];
+      const item = (data.shoppingList || []).find(i => i.id === id);
+      if (item) {
+        item.done = !item.done;
+        saveDatabase();
+        renderShoppingList();
+      }
+    }
+
+    function deleteShoppingItem(id) {
+      const data = db[getActiveKey()];
+      data.shoppingList = (data.shoppingList || []).filter(i => i.id !== id);
+      saveDatabase();
+      renderShoppingList();
+    }
+
+    function clearBoughtItems() {
+      const data = db[getActiveKey()];
+      data.shoppingList = (data.shoppingList || []).filter(i => !i.done);
+      saveDatabase();
+      renderShoppingList();
     }
 
     // ASIGNACIÓN RÁPIDA
@@ -1279,26 +1357,17 @@
       render();
     }
 
-    function openSyncModal() {
-      document.getElementById('syncUrlInput').value = syncUrl;
-      document.getElementById('syncModal').classList.remove('hidden');
-    }
-
-    function saveSyncSettings() {
-      syncUrl = document.getElementById('syncUrlInput').value.trim();
-      localStorage.setItem('basecero_sync_url', syncUrl);
-      closeModal('syncModal');
-      saveDatabase();
-      alert("Configuración de sincronización guardada.");
-    }
-
     function showTab(tab) {
-      ['dashboard', 'transactions', 'debts'].forEach(t => {
+      ['dashboard', 'transactions', 'debts', 'shopping'].forEach(t => {
         document.getElementById(`tab-${t}`).classList.add('hidden');
-        document.getElementById(`tabBtn-${t}`).className = "tab-btn font-bold text-sm pb-2 text-slate-400 hover:text-slate-200";
+        document.getElementById(`tabBtn-${t}`).className = "tab-btn font-bold text-xs md:text-sm pb-2 text-slate-400 hover:text-slate-200 whitespace-nowrap";
       });
       document.getElementById(`tab-${tab}`).classList.remove('hidden');
-      document.getElementById(`tabBtn-${tab}`).className = "tab-btn font-bold text-sm pb-2 border-b-2 border-emerald-500 text-emerald-400";
+      document.getElementById(`tabBtn-${tab}`).className = "tab-btn font-bold text-xs md:text-sm pb-2 border-b-2 border-emerald-500 text-emerald-400 whitespace-nowrap";
+
+      if (tab === 'shopping') {
+        autoFetchFromDriveSilently();
+      }
     }
 
     function closeModal(id) {
